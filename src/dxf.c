@@ -85,12 +85,13 @@ void dxf_ent_print2 (dxf_node *ent){ /* print the entity structure */
 	while (current){
 		prev = current;
 		if (current->type == DXF_ENT){ /* DXF entity */
-			if (current->obj.name){
+			//if (current->obj.name){
 				for (i=0; i<indent; i++){ /* print the indentation spaces */
 					printf("    ");
 				}
-				printf("%s\n", current->obj.name);  /* print the string of entity's name */
-			}
+				//printf("%s\n", current->obj.name);  /* print the string of entity's name */
+        printf("%s\n", strpool_cstr( &obj_pool, current->obj.id));
+			//}
 			if (current->obj.content){
 				/* starts the content sweep */
 				prev = current->obj.content;
@@ -106,9 +107,14 @@ void dxf_ent_print2 (dxf_node *ent){ /* print the entity structure */
 			/* print the value of atrribute, acording its type */
 			switch (current->value.t_data) {
 				case DXF_STR:
-					if(current->value.s_data){
-						printf("%s", current->value.s_data);
-					}
+					//if(current->value.s_data){
+					//	printf("%s", current->value.s_data);
+					//}
+          if (current->value.group == 2 || (current->value.group > 5 && current->value.group < 10) ){
+            printf("%s", strpool_cstr( &name_pool, current->value.str));
+          } else {
+            printf("%s", strpool_cstr( &value_pool, current->value.str));
+          }
 					break;
 				case DXF_FLOAT:
 					printf("%f", current->value.d_data);
@@ -155,12 +161,13 @@ void dxf_ent_print_f (dxf_node *ent, char *path){ /* print the entity structure 
 	while ((current != NULL) && (file != NULL)){
 		prev = current;
 		if (current->type == DXF_ENT){ /* DXF entity */
-			if (current->obj.name){
+			//if (current->obj.name){
 				for (i=0; i<indent; i++){ /* print the indentation spaces */
 					fprintf(file, "    ");
 				}
-				fprintf(file, "%s\n", current->obj.name);  /* print the string of entity's name */
-			}
+				//fprintf(file, "%s\n", current->obj.name);  /* print the string of entity's name */
+        fprintf(file, "%s\n", strpool_cstr( &obj_pool, current->obj.id));
+			//}
 			if (current->obj.content){
 				/* starts the content sweep */
 				prev = current->obj.content;
@@ -176,9 +183,15 @@ void dxf_ent_print_f (dxf_node *ent, char *path){ /* print the entity structure 
 			/* print the value of atrribute, acording its type */
 			switch (current->value.t_data) {
 				case DXF_STR:
-					if(current->value.s_data){
-						fprintf(file, "%s", current->value.s_data);
-					}
+					//if(current->value.s_data){
+					//	fprintf(file, "%s", current->value.s_data);
+					//}
+          if (current->value.group == 2 || (current->value.group > 5 && current->value.group < 10) ){
+            fprintf(file, "%s", strpool_cstr( &name_pool, current->value.str));
+          } else {
+            fprintf(file, "%s", strpool_cstr( &value_pool, current->value.str));
+          }
+        
 					break;
 				case DXF_FLOAT:
 					fprintf(file, "%f", current->value.d_data);
@@ -221,10 +234,12 @@ dxf_node * dxf_obj_new (char *name, int pool){
 	//dxf_mem_pool(enum dxf_pool_action action, int idx)
 	dxf_node *new_obj = dxf_mem_pool(ADD_DXF, pool);
 	if (new_obj){
-		new_obj->obj.name[0] = 0;
+		//new_obj->obj.name[0] = 0;
+    new_obj->obj.id = 0;
 		if(name){
 			//new_name = malloc(strlen(name)+1);  /* create new string */
-			strncpy(new_obj->obj.name, name, DXF_MAX_CHARS); /* and copy the name */
+			//strncpy(new_obj->obj.name, name, DXF_MAX_CHARS); /* and copy the name */
+      new_obj->obj.id = strpool_inject( &obj_pool, (char const*) name, strlen(name) );
 		}
 		new_obj->master = NULL;
 		new_obj->prev = NULL;
@@ -326,6 +341,7 @@ int dxf_ident_attr_type (int group){
 	}
 }
 
+#if (0)
 int dxf_ident_ent_type (dxf_node *obj){
 	enum dxf_graph ent_type = DXF_NONE;
 	if (obj){
@@ -406,6 +422,120 @@ int dxf_ident_ent_type (dxf_node *obj){
 	}
 	return ent_type;
 }
+#endif
+
+int dxf_ident_ent_type (dxf_node *obj){
+  static int init = 0;
+  static STRPOOL_U64 ents[50];
+  
+  if (!init){
+    ents[0] = strpool_inject(&obj_pool, "LINE", (int) strlen("LINE"));
+    ents[1] = strpool_inject(&obj_pool, "POINT", (int) strlen("POINT"));
+    ents[2] = strpool_inject(&obj_pool, "CIRCLE", (int) strlen("CIRCLE"));
+    ents[3] = strpool_inject(&obj_pool, "ARC", (int) strlen("ARC"));
+    ents[4] = strpool_inject(&obj_pool, "TRACE", (int) strlen("TRACE"));
+    ents[5] = strpool_inject(&obj_pool, "SOLID", (int) strlen("SOLID"));
+    ents[6] = strpool_inject(&obj_pool, "TEXT", (int) strlen("TEXT"));
+    ents[7] = strpool_inject(&obj_pool, "SHAPE", (int) strlen("SHAPE"));
+    ents[8] = strpool_inject(&obj_pool, "INSERT", (int) strlen("INSERT"));
+    ents[9] = strpool_inject(&obj_pool, "ATTRIB", (int) strlen("ATTRIB"));
+    ents[10] = strpool_inject(&obj_pool, "POLYLINE", (int) strlen("POLYLINE"));
+    ents[11] = strpool_inject(&obj_pool, "VERTEX", (int) strlen("VERTEX"));
+    ents[12] = strpool_inject(&obj_pool, "LWPOLYLINE", (int) strlen("LWPOLYLINE"));
+    ents[13] = strpool_inject(&obj_pool, "3DFACE", (int) strlen("3DFACE"));
+    ents[14] = strpool_inject(&obj_pool, "VIEWPORT", (int) strlen("VIEWPORT"));
+    ents[15] = strpool_inject(&obj_pool, "DIMENSION", (int) strlen("DIMENSION"));
+    ents[16] = strpool_inject(&obj_pool, "ELLIPSE", (int) strlen("ELLIPSE"));
+    ents[17] = strpool_inject(&obj_pool, "MTEXT", (int) strlen("MTEXT"));
+    ents[18] = strpool_inject(&obj_pool, "BLOCK", (int) strlen("BLOCK"));
+    ents[19] = strpool_inject(&obj_pool, "ENDBLK", (int) strlen("ENDBLK"));
+    ents[20] = strpool_inject(&obj_pool, "HATCH", (int) strlen("HATCH"));
+    ents[21] = strpool_inject(&obj_pool, "DIMSTYLE", (int) strlen("DIMSTYLE"));
+    ents[22] = strpool_inject(&obj_pool, "IMAGE", (int) strlen("IMAGE"));
+    ents[23] = strpool_inject(&obj_pool, "SPLINE", (int) strlen("SPLINE"));
+    
+    init = 1;
+  }
+  
+	enum dxf_graph ent_type = DXF_NONE;
+	if (obj){
+		if (obj->type == DXF_ENT){
+			if (obj->obj.id == ents[0]){
+				ent_type = DXF_LINE;
+			}
+			else if (obj->obj.id == ents[1]){
+				ent_type = DXF_POINT;
+			}
+			else if (obj->obj.id == ents[2]){
+				ent_type = DXF_CIRCLE;
+			}
+			else if (obj->obj.id == ents[3]){
+				ent_type = DXF_ARC;
+			}
+			else if (obj->obj.id == ents[4]){
+				ent_type = DXF_TRACE;
+			}
+			else if (obj->obj.id == ents[5]){
+				ent_type = DXF_SOLID;
+			}
+			else if (obj->obj.id == ents[6]){
+				ent_type = DXF_TEXT;
+			}
+			else if (obj->obj.id == ents[7]){
+				ent_type = DXF_SHAPE;
+			}
+			else if (obj->obj.id == ents[8]){
+				ent_type = DXF_INSERT;
+			}
+			else if (obj->obj.id == ents[9]){
+				ent_type = DXF_ATTRIB;
+			}
+			else if (obj->obj.id == ents[10]){
+				ent_type = DXF_POLYLINE;
+			}
+			else if (obj->obj.id == ents[11]){
+				ent_type = DXF_VERTEX;
+			}
+			else if (obj->obj.id == ents[12]){
+				ent_type = DXF_LWPOLYLINE;
+			}
+			else if (obj->obj.id == ents[13]){
+				ent_type = DXF_3DFACE;
+			}
+			else if (obj->obj.id == ents[14]){
+				ent_type = DXF_VIEWPORT;
+			}
+			else if (obj->obj.id == ents[15]){
+				ent_type = DXF_DIMENSION;
+			}
+			else if (obj->obj.id == ents[16]){
+				ent_type = DXF_ELLIPSE;
+			}
+			else if (obj->obj.id == ents[17]){
+				ent_type = DXF_MTEXT;
+			}
+			else if (obj->obj.id == ents[18]){
+				ent_type = DXF_BLK;
+			}
+			else if (obj->obj.id == ents[19]){
+				ent_type = DXF_ENDBLK;
+			}
+			else if (obj->obj.id == ents[20]){
+				ent_type = DXF_HATCH;
+			}
+			else if (obj->obj.id == ents[21]){
+				ent_type = DXF_DIMSTYLE;
+			}
+			else if (obj->obj.id == ents[22]){
+				ent_type = DXF_IMAGE;
+			}
+			else if (obj->obj.id == ents[23]){
+				ent_type = DXF_SPLINE;
+			}
+		}
+	}
+	return ent_type;
+}
 
 dxf_node * dxf_attr_new (int group, int type, void *value, int pool){
 	/* create a new DXF attribute */
@@ -420,17 +550,22 @@ dxf_node * dxf_attr_new (int group, int type, void *value, int pool){
 		new_attr->value.group = group;
 		new_attr->value.t_data = type;
 		
-		switch(type) {
-			case DXF_FLOAT :
-				new_attr->value.d_data = *((double *)value);
-				break;
-			case DXF_INT :
-				new_attr->value.i_data = *((int *)value);
-				break;
-			case DXF_STR :
-				//new_attr->value.s_data = malloc(strlen((char *) value)+1);  /* create new string */
-				new_attr->value.s_data[0] = 0;
-				strncpy(new_attr->value.s_data,(char *) value, DXF_MAX_CHARS); /* and copy the string */
+		if(type == DXF_FLOAT){
+      new_attr->value.d_data = *((double *)value);
+    }
+		else if(type == DXF_INT){
+      new_attr->value.i_data = *((int *)value);
+		}
+		else if(type == DXF_STR){
+      //new_attr->value.s_data = malloc(strlen((char *) value)+1);  /* create new string */
+      
+      //new_attr->value.s_data[0] = 0;
+      //strncpy(new_attr->value.s_data,(char *) value, DXF_MAX_CHARS); /* and copy the string */
+      if (group == 2 || (group > 5 && group < 10) ) {
+        new_attr->value.str = strpool_inject( &name_pool, (char const*) value, strlen((char *) value) );
+      } else {
+        new_attr->value.str = strpool_inject( &value_pool, (char const*) value, strlen((char *) value) );
+      }
 		}
 	}
 	return new_attr;
@@ -579,6 +714,8 @@ dxf_node * dxf_find_attr_nxt(dxf_node * obj, dxf_node ** next, int attr){
 dxf_node * dxf_find_obj_nxt(dxf_node * obj, dxf_node ** next, char *name){
 	if (obj == NULL) return NULL; /* check if exist */
 	if (obj->type != DXF_ENT) return NULL; /* check if valid object */
+  
+  STRPOOL_U64 id = strpool_inject(&obj_pool, (const char*) name, (int) strlen(name));
 	
 	dxf_node *current = NULL;
 	
@@ -589,7 +726,8 @@ dxf_node * dxf_find_obj_nxt(dxf_node * obj, dxf_node ** next, char *name){
 	while (current){
 		if (current->type == DXF_ENT){
 			/* verify if matchs */
-			if(strcmp(current->obj.name, name) == 0){
+			//if(strcmp(current->obj.name, name) == 0){
+      if (current->obj.id == id){
 				/* success */
 				*next = current->next;
 				return current;
@@ -657,13 +795,16 @@ vector_p dxf_find_obj(dxf_node * obj, char *name){
 
 dxf_node * dxf_find_obj2(dxf_node * obj, char *name){
 	dxf_node *current;
+  
+  STRPOOL_U64 id = strpool_inject(&obj_pool, (const char*) name, (int) strlen(name));
 	
 	if(obj != NULL){ /* check if exist */
 		if (obj->type == DXF_ENT){
 			current = obj->obj.content->next;
 			while (current){
 				if (current->type == DXF_ENT){
-					if(strcmp(current->obj.name, name) == 0){ /* success */
+					//if(strcmp(current->obj.name, name) == 0){ /* success */
+          if (current->obj.id == id){
 						return current;
 					}
 				}
@@ -676,13 +817,17 @@ dxf_node * dxf_find_obj2(dxf_node * obj, char *name){
 
 int dxf_count_obj(dxf_node * obj, char *name){
 	dxf_node *current;
+  
+  STRPOOL_U64 id = strpool_inject(&obj_pool, (const char*) name, (int) strlen(name));
+  
 	int count = 0;
 	if(obj != NULL){ /* check if exist */
 		if (obj->type == DXF_ENT){
 			current = obj->obj.content->next;
 			while (current){
 				if (current->type == DXF_ENT){
-					if(strcmp(current->obj.name, name) == 0){
+					//if(strcmp(current->obj.name, name) == 0){
+          if (current->obj.id == id){
 						count++;
 					}
 				}
@@ -699,6 +844,8 @@ dxf_node * dxf_find_obj_i(dxf_node * obj, char *name, int idx){
 	dxf_node *current;
 	dxf_node *found = NULL;
 	int i = 0;
+  
+  STRPOOL_U64 id = strpool_inject(&obj_pool, (const char*) name, (int) strlen(name));
 	
 	if(obj != NULL){ /* check if exist */
 		if (obj->type == DXF_ENT){
@@ -706,7 +853,8 @@ dxf_node * dxf_find_obj_i(dxf_node * obj, char *name, int idx){
 			while (current){
 				if (current->type == DXF_ENT){
 					/* verify if matchs */
-					if(strcmp(current->obj.name, name) == 0){
+					//if(strcmp(current->obj.name, name) == 0){
+          if (current->obj.id == id){
 						found = current;
 						/* and if is the index wanted */
 						if (idx == i){
@@ -767,37 +915,43 @@ vector_p dxf_find_obj_descr(dxf_node * obj, char *name, char *descr){
 
 dxf_node * dxf_find_obj_descr2(dxf_node * obj, char *name, char *descr){
 	dxf_node *current, *descr_attr;
+  
+  STRPOOL_U64 id = strpool_inject(&obj_pool, (const char*) name, (int) strlen(name));
+  STRPOOL_U64 dscr = strpool_inject(&name_pool, (const char*) descr, (int) strlen(descr));
+  
 	
 	if(obj != NULL){ /* check if obj exist */
 		if (obj->type == DXF_ENT){
 			
-			char name_cpy[DXF_MAX_CHARS+1], *new_name;
-			char descr_cpy[DXF_MAX_CHARS+1], *new_descr;
-			char test_descr[DXF_MAX_CHARS+1];
+			//char name_cpy[DXF_MAX_CHARS+1], *new_name;
+			//char descr_cpy[DXF_MAX_CHARS+1], *new_descr;
+			//char test_descr[DXF_MAX_CHARS+1];
 			
 			/* copy strings for secure manipulation */
-			strncpy(name_cpy, name, DXF_MAX_CHARS);
-			strncpy(descr_cpy, descr, DXF_MAX_CHARS);
+			//strncpy(name_cpy, name, DXF_MAX_CHARS);
+			//strncpy(descr_cpy, descr, DXF_MAX_CHARS);
 			/* remove trailing spaces */
-			new_name = trimwhitespace(name_cpy);
-			new_descr = trimwhitespace(descr_cpy);
+			//new_name = trimwhitespace(name_cpy);
+			//new_descr = trimwhitespace(descr_cpy);
 			/* change to upper case */
-			str_upp(new_name);
-			str_upp(new_descr);
+			//str_upp(new_name);
+			//str_upp(new_descr);
 			
 			current = obj->obj.content->next;
 			while (current){ /* sweep master content */
 				if (current->type == DXF_ENT){ /* look for dxf entities */
-					if(strcmp(current->obj.name, new_name) == 0){ /* match obj's name */
+					//if(strcmp(current->obj.name, new_name) == 0){ /* match obj's name */
+          if (current->obj.id == id){
 						descr_attr = dxf_find_attr2(current, 2); /* look for descriptor in group 2 attribute */
 						if (descr_attr){ /* found attribute */
 							/* copy strings for secure manipulation */
-							strncpy(test_descr, descr_attr->value.s_data, DXF_MAX_CHARS);
+							//strncpy(test_descr, descr_attr->value.s_data, DXF_MAX_CHARS);
 							/* change to upper case */
-							str_upp(test_descr);
+							//str_upp(test_descr);
 							
 							/* match descriptor */
-							if(strcmp(test_descr, new_descr) == 0){
+							//if(strcmp(test_descr, new_descr) == 0){
+              if (descr_attr->value.str == dscr){
 								/* success */
 								return current;
 							}
@@ -815,9 +969,10 @@ void dxf_layer_assemb (dxf_drawing *drawing){
 	int i, flags;
 	dxf_node *current = NULL, *curr_layer = NULL;
 	
-	char name[DXF_MAX_CHARS];
+	//char name[DXF_MAX_CHARS];
 	int color;
-	char ltype[DXF_MAX_CHARS];
+	//char ltype[DXF_MAX_CHARS];
+  STRPOOL_U64 name, ltype;
 	int line_w;
 	int frozen;
 	int lock;
@@ -825,8 +980,8 @@ void dxf_layer_assemb (dxf_drawing *drawing){
 	
 	/* always set the index 0 as the default layer*/
 	drawing->num_layers = 0;
-	drawing->layers[0].name[0] = 0;
-	drawing->layers[0].ltype[0] = 0;
+	drawing->layers[0].name = 0;
+	drawing->layers[0].ltype = 0;
 	drawing->layers[0].color = 0;
 	drawing->layers[0].line_w = 0;
 	drawing->layers[0].frozen = 0;
@@ -840,9 +995,9 @@ void dxf_layer_assemb (dxf_drawing *drawing){
 	dxf_node *nxt_lay = NULL;
 	while (curr_layer = dxf_find_obj_nxt(drawing->t_layer, &nxt_lay, "LAYER")){ /* get the next layer */
 	
-		name[0] = 0;
+		name = 0;
 		color = 0;
-		ltype[0] = 0;
+		ltype = 0;
 		line_w = 0;
 		frozen = 0;
 		lock = 0;
@@ -854,10 +1009,12 @@ void dxf_layer_assemb (dxf_drawing *drawing){
 			if (current->type == DXF_ATTR){
 				switch (current->value.group){
 					case 2: /* layer name */
-						strcpy(name, current->value.s_data);
+						//strcpy(name, current->value.s_data);
+            name = current->value.str;
 						break;
 					case 6: /* layer line type name */
-						strcpy(ltype, current->value.s_data);
+						//strcpy(ltype, current->value.s_data);
+            ltype = current->value.str;
 						break;
 					case 62: /* layer color */
 						color = current->value.i_data;
@@ -879,8 +1036,10 @@ void dxf_layer_assemb (dxf_drawing *drawing){
 		}
 		if (i < DXF_MAX_LAYERS){
 			/* set the variables on the current layer in drawing structure */
-			strcpy(drawing->layers[i].name, name);
-			strcpy(drawing->layers[i].ltype, ltype);
+			//strcpy(drawing->layers[i].name, name);
+      drawing->layers[i].name = name;
+			//strcpy(drawing->layers[i].ltype, ltype);
+      drawing->layers[i].ltype = ltype;
 			drawing->layers[i].color = color;
 			drawing->layers[i].line_w = line_w;
 			drawing->layers[i].frozen = frozen;
@@ -901,15 +1060,16 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 	int i, j, pat_idx;
 	dxf_node *current = NULL, *curr_ltype = NULL;
 	
-	char name[DXF_MAX_CHARS], descr[DXF_MAX_CHARS];
+	//char name[DXF_MAX_CHARS], descr[DXF_MAX_CHARS];
+  STRPOOL_U64 name, descr;
 	int size;
 	dxf_ltyp_pat dashes[DXF_MAX_PAT];
 	double length, max;
 	
 	/* always set the index 0 as the default ltype*/
 	drawing->num_ltypes = 0;
-	drawing->ltypes[0].name[0] = 0;
-	drawing->ltypes[0].descr[0] = 0;
+	drawing->ltypes[0].name = 0;
+	drawing->ltypes[0].descr = 0;
 	drawing->ltypes[0].size = 1;
 	drawing->ltypes[0].dashes[0].dash = 0.0;
 	drawing->ltypes[0].dashes[0].type = LTYP_SIMPLE;
@@ -922,14 +1082,14 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 	while (curr_ltype = dxf_find_obj_nxt(drawing->t_ltype, &nxt_ltyp, "LTYPE")){ /* get the next ltype */
 		
 		/* init the line type */
-		name[0] = 0;
-		descr[0] = 0;
+		name = 0;
+		descr = 0;
 		size = 0;
 		/* init first dash */
 		dashes[0].dash = 0;
 		dashes[0].type = LTYP_SIMPLE;
-		dashes[0].str[0] = 0;
-		dashes[0].sty[0] = 0;
+		dashes[0].str = 0;
+		dashes[0].sty = 0;
 		dashes[0].sty_i = -1;
 		dashes[0].abs_rot = 0;
 		dashes[0].rot = 0.0;
@@ -946,10 +1106,12 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 			if (current->type == DXF_ATTR){
 				switch (current->value.group){
 					case 2: /* ltype name */
-						strcpy(name, current->value.s_data);
+						//strcpy(name, current->value.s_data);
+            name = current->value.str;
 						break;
 					case 3: /* ltype descriptive text */
-						strcpy(descr, current->value.s_data);
+						//strcpy(descr, current->value.s_data);
+            descr = current->value.str;
 						break;
 					case 40: /* pattern length */
 						length = current->value.d_data;
@@ -959,8 +1121,8 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 							dashes[pat_idx].dash = current->value.d_data; /* current dash length */
 							dashes[pat_idx].type = LTYP_SIMPLE; /* presume simple regular dash */
 							/* init parameters for complex element */
-							dashes[pat_idx].str[0] = 0;
-							dashes[pat_idx].sty[0] = 0;
+							dashes[pat_idx].str = 0;
+							dashes[pat_idx].sty = 0;
 							dashes[pat_idx].sty_i = -1;
 							dashes[pat_idx].abs_rot = 0;
 							dashes[pat_idx].rot = 0.0;
@@ -993,7 +1155,8 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 					case 9: /* complex - string */
 						if (pat_idx > 0){
 							if (dashes[pat_idx - 1].type == LTYP_STRING) {
-								strncpy(dashes[pat_idx - 1].str, current->value.s_data, 29);
+								//strncpy(dashes[pat_idx - 1].str, current->value.s_data, 29);
+                dashes[pat_idx - 1].str = current->value.str;
 							}
 						}
 						break;
@@ -1020,14 +1183,16 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 					case 340: /* complex - style handle */
 						if (pat_idx > 0){
 							dashes[pat_idx - 1].sty_i = 0; /* init  style index */
-							long int id = strtol(current->value.s_data, NULL, 16); /* convert string handle to integer */
+							//long int id = strtol(current->value.s_data, NULL, 16); /* convert string handle to integer */
+              long int id = strtol(strpool_cstr( &value_pool, current->value.str), NULL, 16);
 							/* look for correspondent style object */
 							dxf_node *t_obj = dxf_find_handle(drawing->t_style, id);
 							
 							for (j=0; j < drawing->num_tstyles; j++){ /* sweep drawing's text styles */
 								if (drawing->text_styles[j].obj == t_obj){ /* verify if object matchs */
 									dashes[pat_idx - 1].sty_i = j; /* get index */
-									strncpy(dashes[pat_idx - 1].sty, drawing->text_styles[j].name, 29); /* and style name */
+									//strncpy(dashes[pat_idx - 1].sty, drawing->text_styles[j].name, 29); /* and style name */
+                  dashes[pat_idx - 1].sty = drawing->text_styles[j].name;
 									break;
 								}
 							}
@@ -1040,8 +1205,10 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 		
 		/* set the variables on the current ltype in drawing structure */
 		if (i < DXF_MAX_LTYPES){
-			strcpy(drawing->ltypes[i].name, name);
-			strcpy(drawing->ltypes[i].descr, descr);
+			//strcpy(drawing->ltypes[i].name, name);
+      drawing->ltypes[i].name = name;
+			//strcpy(drawing->ltypes[i].descr, descr);
+      drawing->ltypes[i].descr = descr;
 			for (j = 0; j < size; j++){ /* store dashes parameters */
 				drawing->ltypes[i].dashes[j].dash = dashes[j].dash;
 				drawing->ltypes[i].dashes[j].type = dashes[j].type;
@@ -1049,9 +1216,11 @@ void dxf_ltype_assemb (dxf_drawing *drawing){
 				if (dashes[j].type == LTYP_SHAPE){
 					drawing->ltypes[i].dashes[j].num = dashes[j].num;
 				} else if (dashes[j].type == LTYP_STRING){
-					strncpy (drawing->ltypes[i].dashes[j].str, dashes[j].str,  29);
+					//strncpy (drawing->ltypes[i].dashes[j].str, dashes[j].str,  29);
+          drawing->ltypes[i].dashes[j].str = dashes[j].str;
 				}
-				strncpy (drawing->ltypes[i].dashes[j].sty, dashes[j].sty, 29);
+				//strncpy (drawing->ltypes[i].dashes[j].sty, dashes[j].sty, 29);
+        drawing->ltypes[i].dashes[j].sty = dashes[j].sty;
 				drawing->ltypes[i].dashes[j].sty_i = dashes[j].sty_i;
 				drawing->ltypes[i].dashes[j].abs_rot = dashes[j].abs_rot;
 				drawing->ltypes[i].dashes[j].rot = dashes[j].rot;
@@ -1076,10 +1245,11 @@ void dxf_tstyles_assemb (dxf_drawing *drawing){
 	int i;
 	dxf_node *current = NULL, *curr_tstyle = NULL;
 	
-	char name[DXF_MAX_CHARS];
-	char file_name[DXF_MAX_CHARS];
-	char big_file[DXF_MAX_CHARS];
-	char subst_file[DXF_MAX_CHARS];
+	//char name[DXF_MAX_CHARS];
+	//char file_name[DXF_MAX_CHARS];
+	//char big_file[DXF_MAX_CHARS];
+	//char subst_file[DXF_MAX_CHARS];
+  STRPOOL_U64 name, file_name, big_file, subst_file;
 	
 	int flags1;
 	int flags2;
@@ -1100,10 +1270,10 @@ void dxf_tstyles_assemb (dxf_drawing *drawing){
 	//if (shx_font){
 		/* always set the index 0 as the default font */
 		//drawing->num_tstyles = 1;
-		drawing->text_styles[0].name[0] = 0;
-		drawing->text_styles[0].file[0] = 0;
-		drawing->text_styles[0].big_file[0] = 0;
-		drawing->text_styles[0].subst_file[0] = 0;
+		drawing->text_styles[0].name = 0;
+		drawing->text_styles[0].file = 0;
+		drawing->text_styles[0].big_file = 0;
+		drawing->text_styles[0].subst_file = 0;
 		
 		drawing->text_styles[0].flags1 = 0;
 		drawing->text_styles[0].flags2 = 0;
@@ -1119,10 +1289,10 @@ void dxf_tstyles_assemb (dxf_drawing *drawing){
 	dxf_node *nxt_sty = NULL;
 	while (curr_tstyle = dxf_find_obj_nxt(drawing->t_style, &nxt_sty, "STYLE")){ /* get the next style */
 	
-		name[0] = 0;
-		file_name[0] = 0;
-		big_file[0] = 0;
-		subst_file[0] = 0;
+		name = 0;
+		file_name = 0;
+		big_file = 0;
+		subst_file = 0;
 		
 		flags1 = 0;
 		flags2 = 0;
@@ -1136,13 +1306,16 @@ void dxf_tstyles_assemb (dxf_drawing *drawing){
 			if (current->type == DXF_ATTR){
 				switch (current->value.group){
 					case 2: /* tstyle name */
-						strncpy(name, current->value.s_data, DXF_MAX_CHARS);
+						//strncpy(name, current->value.s_data, DXF_MAX_CHARS);
+            name = current->value.str;
 						break;
 					case 3: /* file name */
-						strncpy(file_name, current->value.s_data, DXF_MAX_CHARS);
+						//strncpy(file_name, current->value.s_data, DXF_MAX_CHARS);
+            file_name = current->value.str;
 						break;
 					case 4: /* bigfont file name */
-						strncpy(big_file, current->value.s_data, DXF_MAX_CHARS);
+						//strncpy(big_file, current->value.s_data, DXF_MAX_CHARS);
+            big_file = current->value.str;
 						break;
 					case 40: /* fixed height*/
 						fixed_h = current->value.d_data;
@@ -1164,9 +1337,12 @@ void dxf_tstyles_assemb (dxf_drawing *drawing){
 		}
 		if (i < DXF_MAX_FONTS){
 			/* set the variables on the current font in drawing structure */
-			strncpy(drawing->text_styles[i].name, name, DXF_MAX_CHARS);
-			strncpy(drawing->text_styles[i].file, file_name, DXF_MAX_CHARS);
-			strncpy(drawing->text_styles[i].big_file, big_file, DXF_MAX_CHARS);
+			//strncpy(drawing->text_styles[i].name, name, DXF_MAX_CHARS);
+      drawing->text_styles[i].name = name;
+			//strncpy(drawing->text_styles[i].file, file_name, DXF_MAX_CHARS);
+      drawing->text_styles[i].file = file_name;
+			//strncpy(drawing->text_styles[i].big_file, big_file, DXF_MAX_CHARS);
+      drawing->text_styles[i].big_file = big_file;
 			
 			drawing->text_styles[i].flags1 = flags1;
 			drawing->text_styles[i].flags2 = flags2;
@@ -1179,16 +1355,23 @@ void dxf_tstyles_assemb (dxf_drawing *drawing){
 			drawing->text_styles[i].num_el = 0;
 			drawing->text_styles[i].obj = curr_tstyle;
 			
-			strncpy(drawing->text_styles[i].subst_file, subst_file, DXF_MAX_CHARS);
+			//strncpy(drawing->text_styles[i].subst_file, subst_file, DXF_MAX_CHARS);
+      drawing->text_styles[i].subst_file = 0;
 			
 			/* try to load fonts */
-			if(font = add_font_list(drawing->font_list, drawing->text_styles[i].file, drawing->dflt_fonts_path)){
+			if(font = add_font_list(drawing->font_list, 
+        //drawing->text_styles[i].file, 
+        (char *) strpool_cstr( &value_pool, drawing->text_styles[i].file),
+        drawing->dflt_fonts_path))
+      {
 				drawing->text_styles[i].font = font;
 			}
 			else if (drawing->dflt_font){
 				font = drawing->dflt_font;
 				drawing->text_styles[i].font = font;
-				strncpy(drawing->text_styles[i].subst_file, font->name, DXF_MAX_CHARS);
+				//strncpy(drawing->text_styles[i].subst_file, font->name, DXF_MAX_CHARS);
+        drawing->text_styles[i].subst_file = strpool_inject( &value_pool,
+          (char const*) font->name, strlen(font->name) );
 			}
 		}
 		i++;
@@ -1198,25 +1381,26 @@ void dxf_tstyles_assemb (dxf_drawing *drawing){
 	else drawing->num_tstyles = DXF_MAX_FONTS;
 }
 
-int dxf_lay_idx (dxf_drawing *drawing, char *name){
+int dxf_lay_idx (dxf_drawing *drawing, STRPOOL_U64 name){
 	int i;
 	if (drawing){
 		for (i=1; i < drawing->num_layers; i++){
 			
-			char name_cpy[DXF_MAX_CHARS], *new_name;
-			char lay_cpy[DXF_MAX_CHARS], *new_lay;
+			//char name_cpy[DXF_MAX_CHARS], *new_name;
+			//char lay_cpy[DXF_MAX_CHARS], *new_lay;
 			
 			/* copy strings for secure manipulation */
-			strncpy(name_cpy, name, DXF_MAX_CHARS);
-			strncpy(lay_cpy, drawing->layers[i].name, DXF_MAX_CHARS);
+			//strncpy(name_cpy, name, DXF_MAX_CHARS);
+			//strncpy(lay_cpy, drawing->layers[i].name, DXF_MAX_CHARS);
 			/* remove trailing spaces */
-			new_name = trimwhitespace(name_cpy);
-			new_lay = trimwhitespace(lay_cpy);
+			//new_name = trimwhitespace(name_cpy);
+			//new_lay = trimwhitespace(lay_cpy);
 			/* change to upper case */
-			str_upp(new_name);
-			str_upp(new_lay);
+			//str_upp(new_name);
+			//str_upp(new_lay);
 			
-			if (strcmp(new_lay, new_name) == 0){
+			//if (strcmp(new_lay, new_name) == 0){
+      if ( drawing->layers[i].name == name ){
 				return i;
 			}
 		}
@@ -1226,25 +1410,26 @@ int dxf_lay_idx (dxf_drawing *drawing, char *name){
 }
 
 
-int dxf_ltype_idx (dxf_drawing *drawing, char *name){
+int dxf_ltype_idx (dxf_drawing *drawing, STRPOOL_U64 name){
 	int i;
 	if (drawing){
 		for (i=1; i < drawing->num_ltypes; i++){
 			
-			char name_cpy[DXF_MAX_CHARS], *new_name;
-			char ltp_cpy[DXF_MAX_CHARS], *new_ltp;
+			//char name_cpy[DXF_MAX_CHARS], *new_name;
+			//char ltp_cpy[DXF_MAX_CHARS], *new_ltp;
 			
 			/* copy strings for secure manipulation */
-			strncpy(name_cpy, name, DXF_MAX_CHARS);
-			strncpy(ltp_cpy, drawing->ltypes[i].name, DXF_MAX_CHARS);
+			//strncpy(name_cpy, name, DXF_MAX_CHARS);
+			//strncpy(ltp_cpy, drawing->ltypes[i].name, DXF_MAX_CHARS);
 			/* remove trailing spaces */
-			new_name = trimwhitespace(name_cpy);
-			new_ltp = trimwhitespace(ltp_cpy);
+			//new_name = trimwhitespace(name_cpy);
+			//new_ltp = trimwhitespace(ltp_cpy);
 			/* change to upper case */
-			str_upp(new_name);
-			str_upp(new_ltp);
+			//str_upp(new_name);
+			//str_upp(new_ltp);
 			
-			if (strcmp(new_ltp, new_name) == 0){
+			//if (strcmp(new_ltp, new_name) == 0){
+      if (drawing->ltypes[i].name == name){
 				return i;
 			}
 		}
@@ -1253,16 +1438,17 @@ int dxf_ltype_idx (dxf_drawing *drawing, char *name){
 	return 0; /*if search fails, return the standard layer */
 }
 
-int dxf_tstyle_idx (dxf_drawing *drawing, char *name){
+int dxf_tstyle_idx (dxf_drawing *drawing, STRPOOL_U64 name){
 	int i;
-	char name1[DXF_MAX_CHARS], name2[DXF_MAX_CHARS];
-	strncpy(name1, name, DXF_MAX_CHARS); /* preserve original string */
-	str_upp(name1); /*upper case */
+	//char name1[DXF_MAX_CHARS], name2[DXF_MAX_CHARS];
+	//strncpy(name1, name, DXF_MAX_CHARS); /* preserve original string */
+	//str_upp(name1); /*upper case */
 	if (drawing){
 		for (i=0; i < drawing->num_tstyles; i++){
-			strncpy(name2, drawing->text_styles[i].name, DXF_MAX_CHARS); /* preserve original string */
-			str_upp(name2); /*upper case */
-			if (strcmp(name1, name2) == 0){
+			//strncpy(name2, drawing->text_styles[i].name, DXF_MAX_CHARS); /* preserve original string */
+			//str_upp(name2); /*upper case */
+			//if (strcmp(name1, name2) == 0){
+      if ( drawing->text_styles[i].name == name ){
 				return i;
 			}
 		}
@@ -1274,6 +1460,16 @@ int dxf_tstyle_idx (dxf_drawing *drawing, char *name){
 int dxf_save (char *path, dxf_drawing *drawing){
 	if (!drawing) return 0;
 	if (drawing->main_struct == NULL) return 0;
+  
+  static int init = 0;
+  static STRPOOL_U64 section, table;
+  
+  if (!init){
+    section = strpool_inject( &obj_pool, "SECTION", strlen("SECTION") );
+    table = strpool_inject( &obj_pool, "TABLE", strlen("TABLE") );
+    
+    init = 1;
+  }
 	
 	FILE *file;
 	list_node *stack, *item ;
@@ -1302,10 +1498,12 @@ int dxf_save (char *path, dxf_drawing *drawing){
 				//current = stack_pop (&stack);
 				if (current){
 					/* write the end of complex entities, acording its type */
-					if(strcmp(current->obj.name, "SECTION") == 0){
+					//if(strcmp(current->obj.name, "SECTION") == 0){
+          if( current->obj.id == section ){
 						fprintf(file, "0\nENDSEC\n");
 					}
-					else if(strcmp(current->obj.name, "TABLE") == 0){
+					//else if(strcmp(current->obj.name, "TABLE") == 0){
+          else if( current->obj.id == table ){
 						fprintf(file, "0\nENDTAB\n");
 					}
 					/*
@@ -1329,9 +1527,11 @@ int dxf_save (char *path, dxf_drawing *drawing){
 				list_push(stack, list_new((void *)current, ONE_TIME));
 				stack_size++;
 				//stack_push (&stack, current);
-				if (current->obj.name){
-					fprintf(file, "0\n%s\n", current->obj.name); /* write the start of entity */
-				}
+				//if (current->obj.name){
+					//fprintf(file, "0\n%s\n", current->obj.name); /* write the start of entity */
+            fprintf(file, "0\n%s\n", /* write the start of entity */
+            strpool_cstr( &obj_pool, current->obj.id)); 
+				//}
 				if (current->obj.content){
 					/* starts the content sweep */
 					current = current->obj.content->next;
@@ -1342,7 +1542,12 @@ int dxf_save (char *path, dxf_drawing *drawing){
 				/* write the value of attribute, acording its type */
 				switch (current->value.t_data) {
 					case DXF_STR:
-						fprintf(file, "%s\n", current->value.s_data);
+						//fprintf(file, "%s\n", current->value.s_data);
+            if (current->value.group == 2 || (current->value.group > 5 && current->value.group < 10) ){
+              fprintf(file, "%s\n", strpool_cstr( &name_pool, current->value.str));
+            } else {
+              fprintf(file, "%s\n", strpool_cstr( &value_pool, current->value.str));
+            }
 						break;
 					case DXF_FLOAT:
 						fprintf(file, "%g\n", current->value.d_data);
@@ -1367,7 +1572,7 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 	static dxf_node *main_struct = NULL;
 	static dxf_node *master, *prev, *next, *tmp, *last_obj;
 	
-	static long f_index = 0;  /*  indexes the file´s lines */
+	static long f_index = 0;  /*  indexes the file's lines */
 	int line_size = 0;
 
 	static dxf_node *new_node = NULL, *blk = NULL, *cplx = NULL, *part = NULL;
@@ -1380,6 +1585,26 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 	static int blk_end = 0, cplx_end = 0; /* close block and include ENDBLOCK in structure*/
 	static int ins_flag = 0; /* inside INSERT entity - for cascadind ATTRIB ents */
 	static int mtext_flag = 0; /* inside MTEXT entity - to avoid trim whitespaces in text */
+  
+  static int init = 0;
+  static STRPOOL_U64 section, table, block, poly, endsec, endtab, endblk;
+  static STRPOOL_U64 insert, mtext, seqend;
+  STRPOOL_U64 obj_test;
+  
+  if (!init){
+    section = strpool_inject( &obj_pool, "SECTION", strlen("SECTION") );
+    table = strpool_inject( &obj_pool, "TABLE", strlen("TABLE") );
+    block = strpool_inject( &obj_pool, "BLOCK", strlen("BLOCK") );
+    poly = strpool_inject( &obj_pool, "POLYLINE", strlen("POLYLINE") );
+    endsec = strpool_inject( &obj_pool, "ENDSEC", strlen("ENDSEC") );
+    endtab = strpool_inject( &obj_pool, "ENDTAB", strlen("ENDTAB") );
+    endblk = strpool_inject( &obj_pool, "ENDBLK", strlen("ENDBLK") );
+    insert = strpool_inject( &obj_pool, "INSERT", strlen("INSERT") );
+    mtext = strpool_inject( &obj_pool, "MTEXT", strlen("MTEXT") );
+    seqend = strpool_inject( &obj_pool, "SEQEND", strlen("SEQEND") );
+    
+    init = 1;
+  }
 	
 	if (state == INIT){
 		if ((!drawing)||(!buf)){
@@ -1465,10 +1690,12 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 						mtext_flag = 0;
 					
 						/* new level of hierarchy  */
-						if((strcmp(line, "SECTION") == 0) ||
+						/*if((strcmp(line, "SECTION") == 0) ||
 							(strcmp(line, "TABLE") == 0) ||
 							(strcmp(line, "BLOCK") == 0) ||
-							(strcmp(line, "POLYLINE") == 0)){
+							(strcmp(line, "POLYLINE") == 0)){*/
+            obj_test = strpool_inject( &obj_pool, (const char*) line, strlen(line) );
+            if (obj_test == section || obj_test == table || obj_test == block || obj_test == poly){
 							new_node = dxf_obj_new (line, drawing->pool); /* new object */
 							if (new_node){
 								/*  append new to master's list */
@@ -1481,8 +1708,10 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 								master->end = new_node;
 								last_obj = new_node;
 								
-								if (strcmp(line, "BLOCK") == 0) blk = new_node;
-								if (strcmp(line, "POLYLINE") == 0) cplx = new_node;
+								//if (strcmp(line, "BLOCK") == 0) blk = new_node;
+                if ( obj_test == block ) blk = new_node;
+								//if (strcmp(line, "POLYLINE") == 0) cplx = new_node;
+                if ( obj_test == poly ) cplx = new_node;
 								
 								/* the new becomes the master */
 								master = new_node;
@@ -1491,8 +1720,9 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 						}
 						
 						/* back to the previous level on hierarchy */
-						else if((strcmp(line, "ENDSEC") == 0) ||
-							(strcmp(line, "ENDTAB") == 0) ){//||
+						//else if((strcmp(line, "ENDSEC") == 0) ||
+							//(strcmp(line, "ENDTAB") == 0) ){//||
+            else if (obj_test == endsec || obj_test == endtab){
 							//(strcmp(line, "ENDBLK") == 0)||
 							//(strcmp(line, "SEQEND") == 0)){
 							if(master->master){
@@ -1510,8 +1740,10 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 						
 						/*  new ordinary DXF object */
 						else {
-							if (strcmp(line, "INSERT") == 0) ins_flag = 1;
-							if (strcmp(line, "MTEXT") == 0) mtext_flag = 1;
+							//if (strcmp(line, "INSERT") == 0) ins_flag = 1;
+              if ( obj_test == insert ) ins_flag = 1;
+							//if (strcmp(line, "MTEXT") == 0) mtext_flag = 1;
+              if ( obj_test == mtext ) mtext_flag = 1;
 							
 							new_node = dxf_obj_new (line, drawing->pool); /* new object */
 							if (new_node){
@@ -1527,11 +1759,13 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 								new_node->end = new_node->obj.content;
 								last_obj = new_node;
 								
-								if (strcmp(line, "ENDBLK") == 0){
+								//if (strcmp(line, "ENDBLK") == 0){
+                if ( obj_test == endblk ) {
 									blk_end = 1;
 									//blk = master;
 								}
-								if (strcmp(line, "SEQEND") == 0) cplx_end = 1;
+								//if (strcmp(line, "SEQEND") == 0) cplx_end = 1;
+                if ( obj_test == seqend ) cplx_end = 1;
 							}
 							
 						}
@@ -1676,8 +1910,16 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 		if(dxf_find_head_var(drawing->head, "$ACADVER", &start, &end)){
 			version = dxf_find_attr_i2(start, end, 1, 0);
 			if (version != NULL){
-				if(version->value.s_data){
-					drawing->version = atoi(version->value.s_data + 2);
+        const char * str = NULL;
+        if (version->value.group == 2 || (version->value.group > 5 && version->value.group < 10) ){
+          str = strpool_cstr( &name_pool, version->value.str);
+        } else{
+          str = strpool_cstr( &value_pool, version->value.str);
+        }
+				//if(version->value.s_data){
+        if (str){
+					//drawing->version = atoi(version->value.s_data + 2);
+          drawing->version = atoi(str + 2);
 				}
 			}
 		}
@@ -1724,19 +1966,40 @@ int dxf_read (dxf_drawing *drawing, char *buf, long fsize, int *prog){
 		if(dxf_find_head_var(drawing->head, "$DIMPOST", &start, &end)){
 			part = dxf_find_attr_i2(start, end, 1, 0);
 			if (part != NULL){
-				strncpy (drawing->dimpost, part->value.s_data, DXF_MAX_CHARS);
+        const char * str = NULL;
+        if (part->value.group == 2 || (part->value.group > 5 && part->value.group < 10) ){
+          str = strpool_cstr( &name_pool, part->value.str);
+        } else{
+          str = strpool_cstr( &value_pool, part->value.str);
+        }
+				//strncpy (drawing->dimpost, part->value.s_data, DXF_MAX_CHARS);
+        strncpy (drawing->dimpost, str, DXF_MAX_CHARS);
 			}
 		}
 		if(dxf_find_head_var(drawing->head, "$DIMTXSTY", &start, &end)){
 			part = dxf_find_attr_i2(start, end, 7, 0);
 			if (part != NULL){
-				strncpy (drawing->dimtxsty, part->value.s_data, DXF_MAX_CHARS);
+        const char * str = NULL;
+        if (part->value.group == 2 || (part->value.group > 5 && part->value.group < 10) ){
+          str = strpool_cstr( &name_pool, part->value.str);
+        } else{
+          str = strpool_cstr( &value_pool, part->value.str);
+        }
+				//strncpy (drawing->dimtxsty, part->value.s_data, DXF_MAX_CHARS);
+        strncpy (drawing->dimtxsty, str, DXF_MAX_CHARS);
 			}
 		}
 		if(dxf_find_head_var(drawing->head, "$DIMBLK", &start, &end)){
 			part = dxf_find_attr_i2(start, end, 1, 0);
 			if (part != NULL){
-				strncpy (drawing->dimblk, part->value.s_data, DXF_MAX_CHARS);
+        const char * str = NULL;
+        if (part->value.group == 2 || (part->value.group > 5 && part->value.group < 10) ){
+          str = strpool_cstr( &name_pool, part->value.str);
+        } else{
+          str = strpool_cstr( &value_pool, part->value.str);
+        }
+				//strncpy (drawing->dimblk, part->value.s_data, DXF_MAX_CHARS);
+        strncpy (drawing->dimblk, str, DXF_MAX_CHARS);
 			}
 		}
 		
@@ -1774,7 +2037,7 @@ void dxf_append(dxf_node *master, dxf_node *new_node){
 
 void dxf_list_clear (dxf_node *list){
 	if (list){
-		list->obj.name[0] = 0;
+		list->obj.id = 0;
 		list->master = NULL;
 		list->prev = NULL;
 		list->next = NULL;
@@ -1798,6 +2061,8 @@ int dxf_find_head_var(dxf_node *obj, char *var, dxf_node **start, dxf_node **end
 	
 	*start = NULL;
 	*end = NULL;
+  
+  STRPOOL_U64 test = strpool_inject( &name_pool, (char const*) var, strlen(var) );
 	
 	if(obj != NULL){ /* check if exist */
 		if (obj->type == DXF_ENT){
@@ -1807,7 +2072,8 @@ int dxf_find_head_var(dxf_node *obj, char *var, dxf_node **start, dxf_node **end
 				if (!found){
 					if (current->type == DXF_ATTR){
 						if(current->value.group == 9){
-							if(strcmp((char*) current->value.s_data, var) == 0){
+							//if(strcmp((char*) current->value.s_data, var) == 0){
+              if (current->value.str == test){
 								found = 1; /* var found */
 								*start = current;
 								*end = current;
@@ -1893,9 +2159,21 @@ dxf_drawing *dxf_drawing_new(int pool){
 		drawing->font_list = NULL;
 		drawing->dflt_font = NULL;
 		drawing->dflt_fonts_path = NULL;
+    
 	}
 	
 	return drawing;
+}
+
+int dxf_drawing_term(dxf_drawing *drawing){
+  if (!drawing) return 0;
+  
+  dxf_image_clear_list(drawing);
+  dxf_xref_clear_list(drawing);
+  
+  free(drawing);
+  
+  return 1;
 }
 
 int dxf_obj_append(dxf_node *master, dxf_node *obj){
@@ -2161,8 +2439,11 @@ int dxf_attr_change(dxf_node *master, int group, void *value){
 					found_attr->value.i_data = *((int *)value);
 					break;
 				case DXF_STR :
-					found_attr->value.s_data[0] = 0;
-					strncpy(found_attr->value.s_data,(char *) value, DXF_MAX_CHARS); /* and copy the string */
+					//found_attr->value.s_data[0] = 0;
+					//strncpy(found_attr->value.s_data,(char *) value, DXF_MAX_CHARS); /* and copy the string */
+          if (group == 2 || (group > 5 && group < 10) )
+            found_attr->value.str = strpool_inject( &name_pool, (char const*) value, strlen((char*) value) );
+          else found_attr->value.str = strpool_inject( &value_pool, (char const*) value, strlen((char*) value) );
 			}
 			return 1;
 		}
@@ -2186,8 +2467,11 @@ int dxf_attr_change_i(dxf_node *master, int group, void *value, int idx){
 					found_attr->value.i_data = *((int *)value);
 					break;
 				case DXF_STR :
-					found_attr->value.s_data[0] = 0;
-					strncpy(found_attr->value.s_data,(char *) value, DXF_MAX_CHARS); /* and copy the string */
+					//found_attr->value.s_data[0] = 0;
+					//strncpy(found_attr->value.s_data,(char *) value, DXF_MAX_CHARS); /* and copy the string */
+          if (group == 2 || (group > 5 && group < 10) )
+            found_attr->value.str = strpool_inject( &name_pool, (char const*) value, strlen((char*) value) );
+          else found_attr->value.str = strpool_inject( &value_pool, (char const*) value, strlen((char*) value) );
 			}
 			return 1;
 		}
@@ -2202,6 +2486,8 @@ int dxf_find_ext_appid(dxf_node *obj, char *appid, dxf_node **start, dxf_node **
 	
 	*start = NULL;
 	*end = NULL;
+  
+  STRPOOL_U64 test = strpool_inject( &value_pool, (char const*) appid, strlen(appid) );
 	
 	if(obj != NULL){ /* check if exist */
 		if (obj->type == DXF_ENT){
@@ -2211,7 +2497,8 @@ int dxf_find_ext_appid(dxf_node *obj, char *appid, dxf_node **start, dxf_node **
 				if (!found){
 					if (current->type == DXF_ATTR){
 						if(current->value.group == 1001){
-							if(strcmp((char*) current->value.s_data, appid) == 0){
+							//if(strcmp((char*) current->value.s_data, appid) == 0){
+              if (current->value.str == test){
 								found = 1; /* appid found */
 								*start = current;
 								*end = current;
@@ -2282,15 +2569,19 @@ int ent_handle(dxf_drawing *drawing, dxf_node *element){
 		if ((drawing->ents != NULL) && (drawing->main_struct != NULL)){
 			/* get current handle and increment the handle seed*/
 			long int handle = 0;
-			char hdl_str[DXF_MAX_CHARS];
+			char hdl_str[DXF_MAX_CHARS+1];
+      char nxt_hdl_str[DXF_MAX_CHARS+1];
 			
 			if (drawing->hand_seed){
 				/* get the last handle value and convert to integer */
-				handle = strtol(drawing->hand_seed->value.s_data, NULL, 16);
+				//handle = strtol(drawing->hand_seed->value.s_data, NULL, 16);
+        handle = strtol(strpool_cstr( &value_pool, drawing->hand_seed->value.str), NULL, 16);
 				/* convert back to hexadecimal string, to write in element */
 				snprintf(hdl_str, DXF_MAX_CHARS, "%X", handle);
 				/* increment value of seed and write back */
-				snprintf(drawing->hand_seed->value.s_data, DXF_MAX_CHARS, "%lX", handle + 1);
+				//snprintf(drawing->hand_seed->value.s_data, DXF_MAX_CHARS, "%lX", handle + 1);
+        snprintf(nxt_hdl_str, DXF_MAX_CHARS, "%lX", handle + 1);
+        drawing->hand_seed->value.str = strpool_inject( &value_pool, (char const*) nxt_hdl_str, strlen(nxt_hdl_str) );
 			}
 			
 			/* change element handle */
@@ -2365,7 +2656,8 @@ dxf_node *dxf_find_handle(dxf_node *source, long int handle){
 		else if (current->type == DXF_ATTR){ /* DXF attibute */
 			if(current->value.group == 5 || /* found regular handle */
 			current->value.group == 105){/* or DIMENSION handle */
-				id = strtol(current->value.s_data, NULL, 16);
+				//id = strtol(current->value.s_data, NULL, 16);
+        id = strtol(strpool_cstr( &value_pool, current->value.str), NULL, 16);
 				if (id == handle) { /* success */
 					return curr_ent;
 				}
@@ -2560,7 +2852,8 @@ void dxf_xref_assemb (dxf_drawing *drawing){
 			
 			xref_path[0] = 0;
 			if (tmp_obj = dxf_find_attr2(curr_blk, 1)){
-				strncpy (xref_path, tmp_obj->value.s_data, DXF_MAX_CHARS);
+				//strncpy (xref_path, tmp_obj->value.s_data, DXF_MAX_CHARS);
+        strncpy (xref_path, strpool_cstr( &value_pool, tmp_obj->value.str), DXF_MAX_CHARS);
 				dxf_xref_list(drawing, xref_path);
 			}
 			
@@ -2574,6 +2867,8 @@ int dxf_find_last_blk (dxf_drawing *drawing, char *mark){
 	if (!drawing) return 0;
 	if (!drawing->blks) return 0;
 	if (!mark) return 0;
+  
+  STRPOOL_U64 block = strpool_inject( &obj_pool, "BLOCK", strlen("BLOCK") );
 	
 	int len = 0;
 	if (len = strlen(mark) == 0) return 0;
@@ -2588,11 +2883,13 @@ int dxf_find_last_blk (dxf_drawing *drawing, char *mark){
 	current = drawing->blks->obj.content->next;
 	while (current){
 		if (current->type == DXF_ENT){ /* look for dxf entities */
-			if(strcmp(current->obj.name, "BLOCK") == 0){ /* match blocks */
+			//if(strcmp(current->obj.name, "BLOCK") == 0){ /* match blocks */
+      if (current->obj.id == block){
 				descr_attr = dxf_find_attr2(current, 2); /* look for descriptor in group 2 attribute */
 				if (descr_attr){ /* found attribute */
 					/* copy strings for secure manipulation */
-					strncpy(test_descr, descr_attr->value.s_data, DXF_MAX_CHARS);
+					//strncpy(test_descr, descr_attr->value.s_data, DXF_MAX_CHARS);
+          strncpy(test_descr, strpool_cstr( &name_pool, descr_attr->value.str), DXF_MAX_CHARS);
 					/* change to upper case */
 					str_upp(test_descr);
 					/* look for Block name starting by mark chars*/

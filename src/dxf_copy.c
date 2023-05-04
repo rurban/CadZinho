@@ -10,8 +10,8 @@ dxf_node *dxf_ent_copy(dxf_node *source, int pool_dest){
 			if (source->obj.content){
 				current = source->obj.content->next;
 				prev = current;
-				
-				dest = dxf_obj_new (source->obj.name, pool_dest);
+				//
+				dest = dxf_obj_new (strpool_cstr( &obj_pool, source->obj.id), pool_dest);
 				curr_dest = dest;
 			}
 		}
@@ -22,7 +22,7 @@ dxf_node *dxf_ent_copy(dxf_node *source, int pool_dest){
 			
 			if (current->obj.content){
 				
-				new_ent = dxf_obj_new (current->obj.name, pool_dest);
+				new_ent = dxf_obj_new (strpool_cstr( &obj_pool, current->obj.id), pool_dest);
 				dxf_obj_append(curr_dest, new_ent);
 				curr_dest = new_ent;
 				
@@ -35,7 +35,14 @@ dxf_node *dxf_ent_copy(dxf_node *source, int pool_dest){
 		}
 		else if (current->type == DXF_ATTR){ /* DXF attibute */
 			if (current->value.t_data == DXF_STR){
-				dxf_attr_append(curr_dest, current->value.group, current->value.s_data, pool_dest);
+				//dxf_attr_append(curr_dest, current->value.group, current->value.s_data, pool_dest);
+        const char * str = NULL;
+        if (current->value.group == 2 || (current->value.group > 5 && current->value.group < 10) ){
+          str = strpool_cstr( &name_pool, current->value.str);
+        } else{
+          str = strpool_cstr( &value_pool, current->value.str);
+        }
+        dxf_attr_append(curr_dest, current->value.group, str, pool_dest);
 			} else if (current->value.t_data == DXF_FLOAT){
 				dxf_attr_append(curr_dest, current->value.group, &current->value.d_data, pool_dest);
 			} else if (current->value.t_data == DXF_INT){
@@ -85,7 +92,8 @@ dxf_node *dxf_ent_cpy_simple(dxf_node *source, int pool_dest){
 				current = source->obj.content->next;
 				prev = current;
 				
-				dest = dxf_obj_new (source->obj.name, pool_dest);
+				//dest = dxf_obj_new (source->obj.name, pool_dest);
+        dest = dxf_obj_new (strpool_cstr( &obj_pool, source->obj.id), pool_dest);
 				curr_dest = dest;
 			}
 		}
@@ -94,7 +102,14 @@ dxf_node *dxf_ent_cpy_simple(dxf_node *source, int pool_dest){
 	while ((current) && (curr_dest)){
 		if (current->type == DXF_ATTR){ /* DXF attibute */
 			if (current->value.t_data == DXF_STR){
-				dxf_attr_append(curr_dest, current->value.group, current->value.s_data, pool_dest);
+				//dxf_attr_append(curr_dest, current->value.group, current->value.s_data, pool_dest);
+        const char * str = NULL;
+        if (current->value.group == 2 || (current->value.group > 5 && current->value.group < 10) ){
+          str = strpool_cstr( &name_pool, current->value.str);
+        } else{
+          str = strpool_cstr( &value_pool, current->value.str);
+        }
+        dxf_attr_append(curr_dest, current->value.group, str, pool_dest);
 			} else if (current->value.t_data == DXF_FLOAT){
 				dxf_attr_append(curr_dest, current->value.group, &current->value.d_data, pool_dest);
 			} else if (current->value.t_data == DXF_INT){

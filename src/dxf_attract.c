@@ -529,7 +529,8 @@ double *start_ang, double *end_ang){
 }
 
 int dxf_text_get(dxf_drawing *drawing, dxf_node * obj,
-char *text, int *fnt_idx, double *above, double *below,
+//char *text, 
+int *fnt_idx, double *above, double *below,
 double *ins_x, double *ins_y, double *ins_z, 
 double *alin_x, double *alin_y, double *alin_z, 
 double *w, double *h, double *rot, 
@@ -542,16 +543,16 @@ int *alin_v, int *alin_h){
 		double pt2_x = 0, pt2_y = 0, pt2_z = 0;
 		double elev = 0, size = 0, scale_x = 1.0;
 		double extru_x = 0.0, extru_y = 0.0, extru_z = 1.0, normal[3];
-		char t_style[DXF_MAX_CHARS];
-		char tmp_str[DXF_MAX_CHARS];
+		//char t_style[DXF_MAX_CHARS];
+		//char tmp_str[DXF_MAX_CHARS];
 		
 		char *pos_st, *pos_curr, *pos_tmp, special;
 		int under_l, over_l;
 		double fnt_size, txt_size;
 		//shape *shx_font = NULL;
 		
-		t_style[0] = 0;
-		tmp_str[0] = 0;
+		//t_style[0] = 0;
+		//tmp_str[0] = 0;
 		
 		/*flags*/
 		int pt1 = 0, pt2 = 0;
@@ -565,10 +566,10 @@ int *alin_v, int *alin_h){
 			if (current->type == DXF_ATTR){ /* DXF attibute */
 				switch (current->value.group){
 					case 1:
-						strcpy(text, current->value.s_data);
+						//strcpy(text, current->value.s_data);
 						break;
 					case 7:
-						strcpy(t_style, current->value.s_data);
+						//strcpy(t_style, current->value.s_data);
 						break;
 					case 10:
 						pt1_x = current->value.d_data;
@@ -2078,8 +2079,8 @@ double pos_x, double pos_y, double ref_x, double ref_y, double sensi, double *re
 	
 	enum dxf_graph ent_type = DXF_NONE;
 	
-	char name1[DXF_MAX_CHARS], name2[DXF_MAX_CHARS];
-	name1[0] = 0; name2[0] = 0;
+	char name1[DXF_MAX_CHARS + 1];//, name2[DXF_MAX_CHARS];
+	name1[0] = 0; //name2[0] = 0;
 	double pt1_x = 0, pt1_y = 0, pt1_z = 0;
 	int pt1 = 0; /* flag */
 	double t_rot = 0, rot = 0, elev = 0;
@@ -2136,7 +2137,7 @@ double pos_x, double pos_y, double ref_x, double ref_y, double sensi, double *re
 		ins_stack[0] = ins_zero;
 		ins_flag = 0;
 		ent_type = DXF_NONE;
-		name1[0] = 0; name2[0] = 0;
+		name1[0] = 0; //name2[0] = 0;
 		pt1_x = 0; pt1_y = 0; pt1_z = 0;
 		pt1 = 0;
 		t_rot = 0; rot = 0; elev = 0;
@@ -2335,14 +2336,15 @@ double pos_x, double pos_y, double ref_x, double ref_y, double sensi, double *re
 					}
 				}
 				else if (ent_type == DXF_TEXT){
-					char text[DXF_MAX_CHARS];
+					//char text[DXF_MAX_CHARS + 1];
 					double ins_x, ins_y, ins_z;
 					double alin_x, alin_y, alin_z; 
 					double w, h, rot, above, below;
 					int alin_v, alin_h, fnt_idx;
 					
 					if (dxf_text_get (drawing, current, 
-					text, &fnt_idx, &above, &below,
+					//text, 
+          &fnt_idx, &above, &below,
 					&ins_x, &ins_y, &ins_z, 
 					&alin_x, &alin_y, &alin_z, 
 					&w, &h, &rot, 
@@ -2388,10 +2390,10 @@ double pos_x, double pos_y, double ref_x, double ref_y, double sensi, double *re
 				//printf("%d\n", current->value.group);
 				switch (current->value.group){
 					case 2:
-						strcpy(name1, current->value.s_data);
+						strncpy(name1, strpool_cstr( &name_pool, current->value.str), DXF_MAX_CHARS);
 						break;
 					case 3:
-						strcpy(name2, current->value.s_data);
+						//strcpy(name2, current->value.s_data);
 						break;
 					case 10:
 						pt1_x = current->value.d_data;
@@ -2504,7 +2506,7 @@ double pos_x, double pos_y, double ref_x, double ref_y, double sensi, double *re
 					
 					/* clear the strings */
 					name1[0] = 0;
-					name2[0] = 0;
+					//name2[0] = 0;
 					
 					/*clear flags*/
 					pt1 = 0;
