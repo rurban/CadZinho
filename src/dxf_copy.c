@@ -11,7 +11,7 @@ dxf_node *dxf_ent_copy(dxf_node *source, int pool_dest){
 				current = source->obj.content->next;
 				prev = current;
 				//
-				dest = dxf_obj_new (strpool_cstr( &obj_pool, source->obj.id), pool_dest);
+				dest = dxf_obj_new2 ( source->obj.id, pool_dest );
 				curr_dest = dest;
 			}
 		}
@@ -21,8 +21,8 @@ dxf_node *dxf_ent_copy(dxf_node *source, int pool_dest){
 		if (current->type == DXF_ENT){
 			
 			if (current->obj.content){
-				
-				new_ent = dxf_obj_new (strpool_cstr( &obj_pool, current->obj.id), pool_dest);
+				//
+				new_ent = dxf_obj_new2 ( current->obj.id, pool_dest );
 				dxf_obj_append(curr_dest, new_ent);
 				curr_dest = new_ent;
 				
@@ -34,21 +34,9 @@ dxf_node *dxf_ent_copy(dxf_node *source, int pool_dest){
 			}
 		}
 		else if (current->type == DXF_ATTR){ /* DXF attibute */
-			if (current->value.t_data == DXF_STR){
+			//if (current->value.t_data == DXF_STR){
 				//dxf_attr_append(curr_dest, current->value.group, current->value.s_data, pool_dest);
-        const char * str = NULL;
-        if (current->value.group == 2 || (current->value.group > 5 && current->value.group < 10) ){
-          str = strpool_cstr( &name_pool, current->value.str);
-        } else{
-          str = strpool_cstr( &value_pool, current->value.str);
-        }
-        dxf_attr_append(curr_dest, current->value.group, str, pool_dest);
-			} else if (current->value.t_data == DXF_FLOAT){
-				dxf_attr_append(curr_dest, current->value.group, &current->value.d_data, pool_dest);
-			} else if (current->value.t_data == DXF_INT){
-				dxf_attr_append(curr_dest, current->value.group, &current->value.i_data, pool_dest);
-			}
-			
+      dxf_attr_append_cpy(curr_dest, current, pool_dest);
 		}
 		
 		current = current->next; /* go to the next in the list */
@@ -93,7 +81,7 @@ dxf_node *dxf_ent_cpy_simple(dxf_node *source, int pool_dest){
 				prev = current;
 				
 				//dest = dxf_obj_new (source->obj.name, pool_dest);
-        dest = dxf_obj_new (strpool_cstr( &obj_pool, source->obj.id), pool_dest);
+        dest = dxf_obj_new2 ( source->obj.id, pool_dest );
 				curr_dest = dest;
 			}
 		}
@@ -101,20 +89,9 @@ dxf_node *dxf_ent_cpy_simple(dxf_node *source, int pool_dest){
 
 	while ((current) && (curr_dest)){
 		if (current->type == DXF_ATTR){ /* DXF attibute */
-			if (current->value.t_data == DXF_STR){
+			//if (current->value.t_data == DXF_STR){
 				//dxf_attr_append(curr_dest, current->value.group, current->value.s_data, pool_dest);
-        const char * str = NULL;
-        if (current->value.group == 2 || (current->value.group > 5 && current->value.group < 10) ){
-          str = strpool_cstr( &name_pool, current->value.str);
-        } else{
-          str = strpool_cstr( &value_pool, current->value.str);
-        }
-        dxf_attr_append(curr_dest, current->value.group, str, pool_dest);
-			} else if (current->value.t_data == DXF_FLOAT){
-				dxf_attr_append(curr_dest, current->value.group, &current->value.d_data, pool_dest);
-			} else if (current->value.t_data == DXF_INT){
-				dxf_attr_append(curr_dest, current->value.group, &current->value.i_data, pool_dest);
-			}
+      dxf_attr_append_cpy(curr_dest, current, pool_dest);
 			
 		}
 		
@@ -127,33 +104,44 @@ dxf_node *dxf_ent_cpy_simple(dxf_node *source, int pool_dest){
 
 dxf_node * dxf_drwg_cpy(dxf_drawing *source, dxf_drawing *dest, dxf_node *obj){
 	dxf_node *new_ent = NULL;
+  int typ = dxf_ident_ent_type(obj);
 	if (obj->type != DXF_ENT) return NULL;
 	
-	if (strcmp(obj->obj.name, "BLOCK") == 0) return NULL;
-	if (strcmp(obj->obj.name, "ENDBLK") == 0) return NULL;
+	//if (strcmp(obj->obj.name, "BLOCK") == 0) return NULL;
+  if (typ == DXF_BLK) return NULL;
+	//if (strcmp(obj->obj.name, "ENDBLK") == 0) return NULL;
+  if (typ == DXF_ENDBLK) return NULL;
 	
-	if ((strcmp(obj->obj.name, "INSERT") == 0) ||
-		(strcmp(obj->obj.name, "DIMENSION")) == 0){
+	//if ((strcmp(obj->obj.name, "INSERT") == 0) ||
+		//(strcmp(obj->obj.name, "DIMENSION")) == 0){
+  if (typ == DXF_INSERT || typ == DXF_DIMENSION){
 		dxf_node *block = NULL, *blk_name = NULL;
 		blk_name = dxf_find_attr2(obj, 2);
 		if(!blk_name) return NULL;
 		
-		block = dxf_find_obj_descr2(source->blks, "BLOCK", blk_name->value.s_data);
+		block = dxf_find_obj_descr2(source->blks, "BLOCK", 
+      //blk_name->value.s_data);
+      (char*)strpool_cstr( &name_pool, blk_name->value.str));
 		if(!block) return NULL;
 		dxf_node *block_rec = NULL, *new_block = NULL;
 		if (!dxf_block_cpy(source, dest, block, &block_rec, &new_block)) return NULL;
 	}
-	if (strcmp(obj->obj.name, "DIMENSION") == 0){
+	//if (strcmp(obj->obj.name, "DIMENSION") == 0){
+  if ( typ == DXF_DIMENSION ){
 		/* copy DIMSTYLE */
 		dxf_node *dim_sty = NULL, *dim_sty_nam = NULL;
 		dim_sty_nam = dxf_find_attr2(obj, 3);
 		if(!dim_sty_nam) return NULL;
 		
-		dim_sty = dxf_find_obj_descr2(source->t_dimst, "DIMSTYLE", dim_sty_nam->value.s_data);
+		dim_sty = dxf_find_obj_descr2(source->t_dimst, "DIMSTYLE", 
+      //dim_sty_nam->value.s_data);
+      (char*)strpool_cstr( &name_pool, dim_sty_nam->value.str));
 		if(!dim_sty) return NULL;
 		
 		/* verify if DIMSTYLE not exist */
-		if (!dxf_find_obj_descr2(dest->t_dimst, "DIMSTYLE", dim_sty_nam->value.s_data)){
+		if (!dxf_find_obj_descr2(dest->t_dimst, "DIMSTYLE", 
+      //dim_sty_nam->value.s_data)){
+      (char*)strpool_cstr( &name_pool, dim_sty_nam->value.str))){
 		
 			dim_sty = dxf_ent_copy(dim_sty, dest->pool);
 			if(!dim_sty) return NULL;
@@ -164,12 +152,13 @@ dxf_node * dxf_drwg_cpy(dxf_drawing *source, dxf_drawing *dest, dxf_node *obj){
 		}
 	}
 	
-	if (strcmp(obj->obj.name, "IMAGE") == 0){
+	//if (strcmp(obj->obj.name, "IMAGE") == 0){
+  if ( typ == DXF_IMAGE ){
 		/*copy IMAGEDEF */
 		
 		dxf_node *imgdef_obj = dxf_find_attr2(obj, 340);
 		if(imgdef_obj){
-			long imgdef_id = strtol(imgdef_obj->value.s_data, NULL, 16);
+			long imgdef_id = strtol(strpool_cstr( &value_pool, imgdef_obj->value.str) , NULL, 16);
 			/* try to find original IMAGEDEF object */
 			dxf_node *imgdef = dxf_find_handle(source->objs, imgdef_id);
 			if (imgdef) {
@@ -177,8 +166,8 @@ dxf_node * dxf_drwg_cpy(dxf_drawing *source, dxf_drawing *dest, dxf_node *obj){
 
 				dxf_node *path = dxf_find_attr2(imgdef, 1);
 				if (!path) return NULL;
-				imgdef = dxf_new_imgdef (path->value.s_data, dest->pool);
-				
+				imgdef = dxf_new_imgdef (//path->value.s_data, dest->pool);
+          (char*)strpool_cstr( &value_pool, path->value.str), dest->pool);
 				dxf_node *handle = NULL;
 				if (ent_handle(dest, imgdef))
 					handle = dxf_find_attr2(imgdef, 5);
@@ -191,8 +180,9 @@ dxf_node * dxf_drwg_cpy(dxf_drawing *source, dxf_drawing *dest, dxf_node *obj){
 				if (!(new_ent = dxf_ent_copy(obj, dest->pool))) return NULL;
 				if (!(imgdef_obj = dxf_find_attr2(new_ent, 340))) return NULL;
 				
-				/* update pointer in linetype to new obj */
-				snprintf(imgdef_obj->value.s_data, DXF_MAX_CHARS, "%s", handle->value.s_data);
+				/* update cross reference */
+				//snprintf(imgdef_obj->value.s_data, DXF_MAX_CHARS, "%s", handle->value.s_data);
+        imgdef_obj->value.str = handle->value.str;
 			}
 			else return NULL; /* Fail */
 		}
@@ -263,13 +253,14 @@ int dxf_cpy_layer (dxf_drawing *drawing, dxf_node *layer){
 	if (!layer) 
 		return 0; /* error -  not layer */
 	
-	char name[DXF_MAX_CHARS], *new_name;
-	char ltype[DXF_MAX_CHARS];
+	//char name[DXF_MAX_CHARS], *new_name;
+	//char ltype[DXF_MAX_CHARS];
+  STRPOOL_U64 name = 0, ltype = 0;
 	int color = 0, line_w = 0, flags = 0;
 	dxf_node *current = NULL;
 	
-	name[0] = 0;
-	ltype[0] = 0;
+	//name[0] = 0;
+	//ltype[0] = 0;
 	
 	
 	/* and sweep its content */
@@ -278,10 +269,12 @@ int dxf_cpy_layer (dxf_drawing *drawing, dxf_node *layer){
 		if (current->type == DXF_ATTR){
 			switch (current->value.group){
 				case 2: /* layer name */
-					strcpy(name, current->value.s_data);
+					//strcpy(name, current->value.s_data);
+          name = current->value.str;
 					break;
 				case 6: /* layer line type name */
-					strcpy(ltype, current->value.s_data);
+					//strcpy(ltype, current->value.s_data);
+          ltype = current->value.str;
 					break;
 				case 62: /* layer color */
 					color = current->value.i_data;
@@ -298,13 +291,16 @@ int dxf_cpy_layer (dxf_drawing *drawing, dxf_node *layer){
 		}
 		current = current->next;
 	}
-	new_name = trimwhitespace(name);
+	//new_name = trimwhitespace(name);
 	
-	if (strlen(new_name) == 0) return 0; /* error -  no name */
+	//if (strlen(new_name) == 0) return 0; /* error -  no name */
+  if (!name)  return 0; /* error -  no name */
 	
 	/* verify if not exists */
-	if (dxf_find_obj_descr2(drawing->t_layer, "LAYER", new_name) != NULL) 
-		return 0; /* error -  exists layer with same name */
+	//if (dxf_find_obj_descr2(drawing->t_layer, "LAYER", new_name) != NULL) 
+  if (dxf_find_obj_descr2(drawing->t_layer, "LAYER", 
+    (char*)strpool_cstr( &name_pool, name)) != NULL)
+      return 0; /* error -  exists layer with same name */
 	
 	if ((abs(color) > 255) || (color == 0)) color = 7;
 	
@@ -322,10 +318,11 @@ int dxf_cpy_layer (dxf_drawing *drawing, dxf_node *layer){
 		ok &= dxf_attr_append(lay, 5, (void *) handle, drawing->pool);
 		ok &= dxf_attr_append(lay, 100, (void *) dxf_class, drawing->pool);
 		ok &= dxf_attr_append(lay, 100, (void *) dxf_subclass, drawing->pool);
-		ok &= dxf_attr_append(lay, 2, (void *) new_name, drawing->pool);
+		ok &= dxf_attr_append(lay, 2, (void *) strpool_cstr( &name_pool, name), drawing->pool);
 		ok &= dxf_attr_append(lay, 70, (void *) &int_zero, drawing->pool);
 		ok &= dxf_attr_append(lay, 62, (void *) &color, drawing->pool);
-		ok &= dxf_attr_append(lay, 6, (void *) ltype, drawing->pool);
+		if (ltype)
+      ok &= dxf_attr_append(lay, 6, (void *) strpool_cstr( &name_pool, ltype), drawing->pool);
 		ok &= dxf_attr_append(lay, 370, (void *) &line_w, drawing->pool);
 		ok &= dxf_attr_append(lay, 390, (void *) plotstylename, drawing->pool);
 		
@@ -363,7 +360,9 @@ int dxf_cpy_lay_drwg(dxf_drawing *source, dxf_drawing *dest){
 			if (current->type == DXF_ENT){
 				lay_name = dxf_find_attr2(current, 8); /* get element's layer */
 				if (lay_name){
-					lay_obj = dxf_find_obj_descr2(source->t_layer, "LAYER", lay_name->value.s_data);
+					//lay_obj = dxf_find_obj_descr2(source->t_layer, "LAYER", lay_name->value.s_data);
+          lay_obj = dxf_find_obj_descr2(source->t_layer, "LAYER", 
+            (char*)strpool_cstr( &name_pool, lay_name->value.str));
 					dxf_cpy_layer (dest, lay_obj);
 					
 				}
@@ -418,14 +417,15 @@ dxf_node *dxf_cpy_ltype (dxf_drawing *drawing, dxf_node *ltype){
 	if (!ltype) 
 		return NULL; /* error -  not ltype */
 	
-	char name[DXF_MAX_CHARS], descr[DXF_MAX_CHARS], *new_name;
+	//char name[DXF_MAX_CHARS], descr[DXF_MAX_CHARS], *new_name;
+  STRPOOL_U64 name = 0, descr = 0;
 	int size;
 	double length;
 	
 	dxf_node *current = NULL;
 	
-	name[0] = 0;
-	descr[0] = 0;
+	//name[0] = 0;
+	//descr[0] = 0;
 	size = 0;
 	length = 0;
 	
@@ -436,10 +436,12 @@ dxf_node *dxf_cpy_ltype (dxf_drawing *drawing, dxf_node *ltype){
 		if (current->type == DXF_ATTR){
 			switch (current->value.group){
 				case 2: /* ltype name */
-					strcpy(name, current->value.s_data);
+					//strcpy(name, current->value.s_data);
+          name = current->value.str;
 					break;
 				case 3: /* ltype descriptive text */
-					strcpy(descr, current->value.s_data);
+					//strcpy(descr, current->value.s_data);
+          descr = current->value.str;
 					break;
 				case 40: /* pattern length */
 					length = current->value.d_data;
@@ -452,13 +454,15 @@ dxf_node *dxf_cpy_ltype (dxf_drawing *drawing, dxf_node *ltype){
 		}
 		current = current->next;
 	}
-	new_name = trimwhitespace(name);
+	//new_name = trimwhitespace(name);
 	
-	if (strlen(new_name) == 0) return NULL; /* error -  no name */
+	//if (strlen(new_name) == 0) return NULL; /* error -  no name */
+  if (!name) return NULL;
 	
 	/* verify if not exists */
-	if (dxf_find_obj_descr2(drawing->t_ltype, "LTYPE", new_name) != NULL) 
-		return NULL; /* error -  exists ltype with same name */
+	if (dxf_find_obj_descr2(drawing->t_ltype, "LTYPE", //new_name) != NULL) 
+    (char*)strpool_cstr( &name_pool, name)) != NULL)
+      return NULL; /* error -  exists ltype with same name */
 	
 	const char *handle = "0";
 	const char *dxf_class = "AcDbSymbolTableRecord";
@@ -473,9 +477,11 @@ dxf_node *dxf_cpy_ltype (dxf_drawing *drawing, dxf_node *ltype){
 		ok &= dxf_attr_append(l_typ, 5, (void *) handle, drawing->pool);
 		ok &= dxf_attr_append(l_typ, 100, (void *) dxf_class, drawing->pool);
 		ok &= dxf_attr_append(l_typ, 100, (void *) dxf_subclass, drawing->pool);
-		ok &= dxf_attr_append(l_typ, 2, (void *) new_name, drawing->pool);
+		ok &= dxf_attr_append(l_typ, 2, (void *) strpool_cstr( &name_pool, name), drawing->pool);
 		ok &= dxf_attr_append(l_typ, 70, (void *) &int_zero, drawing->pool);
-		ok &= dxf_attr_append(l_typ, 3, (void *) descr, drawing->pool);
+		//ok &= dxf_attr_append(l_typ, 3, (void *) descr, drawing->pool);
+    if (descr)
+      ok &= dxf_attr_append(l_typ, 3, (void *) strpool_cstr( &value_pool, descr), drawing->pool);
 		ok &= dxf_attr_append(l_typ, 72, (void *) &align, drawing->pool);
 		ok &= dxf_attr_append(l_typ, 73, (void *) &size, drawing->pool);
 		ok &= dxf_attr_append(l_typ, 40, (void *) &length, drawing->pool);
@@ -501,7 +507,8 @@ dxf_node *dxf_cpy_ltype (dxf_drawing *drawing, dxf_node *ltype){
 						break;
 					case 340: /* pattern element - text style pointer */
 						ok &= dxf_attr_append(l_typ, 340, 
-							(void *) current->value.s_data,
+							//(void *) current->value.s_data,
+              (void *) strpool_cstr( &value_pool, current->value.str),
 							drawing->pool);
 						break;
 					case 46: /* pattern element scale */
@@ -526,7 +533,8 @@ dxf_node *dxf_cpy_ltype (dxf_drawing *drawing, dxf_node *ltype){
 						break;
 					case 9: /* pattern element - text string */
 						ok &= dxf_attr_append(l_typ, 9, 
-							(void *) current->value.s_data,
+							//(void *) current->value.s_data,
+              (void *) strpool_cstr( &name_pool, current->value.str),
 							drawing->pool);
 						break;
 				}
@@ -576,20 +584,26 @@ int dxf_cpy_ltyp_drwg(dxf_drawing *source, dxf_drawing *dest){
 			if (current->type == DXF_ENT){
 				ltyp_name = dxf_find_attr2(current, 6); /* get element's line type */
 				if (ltyp_name){
-					ltyp_obj = dxf_find_obj_descr2(source->t_ltype, "LTYPE", ltyp_name->value.s_data);
+					//ltyp_obj = dxf_find_obj_descr2(source->t_ltype, "LTYPE", ltyp_name->value.s_data);
+          ltyp_obj = dxf_find_obj_descr2(source->t_ltype, "LTYPE",
+            (char*)strpool_cstr( &name_pool, ltyp_name->value.str));
 					ltyp_obj = dxf_cpy_ltype (dest, ltyp_obj);
 					
 					/* for complex linetype, copy the STYLE object associated */
 					long int sty_id = 0;
 					for (j = 0; sty_obj = dxf_find_attr_i(ltyp_obj, 340, j); j++){
-						sty_id = strtol(sty_obj->value.s_data, NULL, 16);
+						sty_id = strtol(//sty_obj->value.s_data, NULL, 16);
+              (char*)strpool_cstr( &value_pool, sty_obj->value.str), NULL, 16);
 						/* try to find original STYLE object */
 						style = dxf_find_handle(source->t_style, sty_id);
 						if (style) {
 							/* copy STYLE obj to destination drawing */
 							sty_id = dxf_cpy_style (dest, style);
 							/* update pointer in linetype to new obj */
-							snprintf(sty_obj->value.s_data, DXF_MAX_CHARS, "%lX", sty_id);
+							//snprintf(sty_obj->value.s_data, DXF_MAX_CHARS, "%lX", sty_id);
+              char hndl_str[DXF_MAX_CHARS+1];
+              snprintf(hndl_str, DXF_MAX_CHARS, "%lX", sty_id);
+              sty_obj->value.str = strpool_inject( &value_pool, (char const*) hndl_str, strlen(hndl_str) );
 						}
 					}
 				}
@@ -644,9 +658,10 @@ long int dxf_cpy_style (dxf_drawing *drawing, dxf_node *style){
 	if (!style) 
 		return 0; /* error -  not style */
 	
-	char name[DXF_MAX_CHARS], *new_name;
-	char file_name[DXF_MAX_CHARS];
-	char big_file[DXF_MAX_CHARS];
+	//char name[DXF_MAX_CHARS], *new_name;
+	//char file_name[DXF_MAX_CHARS];
+	//char big_file[DXF_MAX_CHARS];
+  STRPOOL_U64 name = 0, file_name = 0, big_file = 0;
 	
 	int flags1;
 	int flags2;
@@ -658,9 +673,9 @@ long int dxf_cpy_style (dxf_drawing *drawing, dxf_node *style){
 	dxf_node *current = NULL;
 	dxf_node * sty = NULL, *handle_obj = NULL;
 	
-	name[0] = 0;
-	file_name[0] = 0;
-	big_file[0] = 0;
+	//name[0] = 0;
+	//file_name[0] = 0;
+	//big_file[0] = 0;
 	
 	flags1 = 0;
 	flags2 = 0;
@@ -675,13 +690,16 @@ long int dxf_cpy_style (dxf_drawing *drawing, dxf_node *style){
 		if (current->type == DXF_ATTR){
 			switch (current->value.group){
 				case 2: /* tstyle name */
-					strncpy(name, current->value.s_data, DXF_MAX_CHARS);
+					//strncpy(name, current->value.s_data, DXF_MAX_CHARS);
+          name = current->value.str;
 					break;
 				case 3: /* file name */
-					strncpy(file_name, current->value.s_data, DXF_MAX_CHARS);
+					//strncpy(file_name, current->value.s_data, DXF_MAX_CHARS);
+          file_name = current->value.str;
 					break;
 				case 4: /* bigfont file name */
-					strncpy(big_file, current->value.s_data, DXF_MAX_CHARS);
+					//strncpy(big_file, current->value.s_data, DXF_MAX_CHARS);
+          big_file = current->value.str;
 					break;
 				case 40: /* fixed height*/
 					fixed_h = current->value.d_data;
@@ -701,15 +719,17 @@ long int dxf_cpy_style (dxf_drawing *drawing, dxf_node *style){
 		}
 		current = current->next;
 	}
-	new_name = trimwhitespace(name);
+	//new_name = trimwhitespace(name);
 	
 	//if (strlen(new_name) == 0) return 0; /* error -  no name */
+  if (!name) return 0;
 	
 	/* verify if not exists */
-	if (sty = dxf_find_obj_descr2(drawing->t_style, "STYLE", new_name)) {
+	if (sty = dxf_find_obj_descr2(drawing->t_style, "STYLE", //new_name)) {
+      (char *)strpool_cstr( &name_pool, name))) {
 		handle_obj = dxf_find_attr2(sty, 5);
-		if (handle_obj) return strtol(handle_obj->value.s_data, NULL, 16);
-		
+		if (handle_obj) return strtol(//handle_obj->value.s_data, NULL, 16);
+      strpool_cstr( &value_pool, handle_obj->value.str), NULL, 16);
 		return 0; /* error */
 	}
 	
@@ -727,15 +747,17 @@ long int dxf_cpy_style (dxf_drawing *drawing, dxf_node *style){
 		ok &= dxf_attr_append(sty, 5, (void *) handle, drawing->pool);
 		ok &= dxf_attr_append(sty, 100, (void *) dxf_class, drawing->pool);
 		ok &= dxf_attr_append(sty, 100, (void *) dxf_subclass, drawing->pool);
-		ok &= dxf_attr_append(sty, 2, (void *) new_name, drawing->pool);
+		ok &= dxf_attr_append(sty, 2, (void *) strpool_cstr( &name_pool, name), drawing->pool);
 		ok &= dxf_attr_append(sty, 70, (void *) &flags1, drawing->pool);
 		ok &= dxf_attr_append(sty, 40, (void *) &fixed_h, drawing->pool);
 		ok &= dxf_attr_append(sty, 41, (void *) &width_f, drawing->pool);
 		ok &= dxf_attr_append(sty, 50, (void *) &oblique, drawing->pool);
 		ok &= dxf_attr_append(sty, 71, (void *) &flags2, drawing->pool);
 		ok &= dxf_attr_append(sty, 42, (void *) &d_one, drawing->pool);
-		ok &= dxf_attr_append(sty, 3, (void *) file_name, drawing->pool);
-		ok &= dxf_attr_append(sty, 4, (void *) big_file, drawing->pool);
+		if (file_name)
+      ok &= dxf_attr_append(sty, 3, (void *) strpool_cstr( &value_pool, file_name), drawing->pool);
+		if (big_file)
+      ok &= dxf_attr_append(sty, 4, (void *) strpool_cstr( &value_pool, big_file), drawing->pool);
 		
 		/* get current handle and increment the handle seed*/
 		ok &= ent_handle(drawing, sty);
@@ -748,7 +770,8 @@ long int dxf_cpy_style (dxf_drawing *drawing, dxf_node *style){
 		dxf_tstyles_assemb (drawing);
 		
 		handle_obj = dxf_find_attr2(sty, 5);
-		if (handle_obj) return strtol(handle_obj->value.s_data, NULL, 16);
+		if (handle_obj) return strtol(//handle_obj->value.s_data, NULL, 16);
+      strpool_cstr( &value_pool, handle_obj->value.str), NULL, 16);
 	}
 	
 	return 0;
@@ -775,7 +798,8 @@ int dxf_cpy_sty_drwg(dxf_drawing *source, dxf_drawing *dest){
 			if (current->type == DXF_ENT){
 				sty_name = dxf_find_attr2(current, 7); /* get element's style */
 				if (sty_name){
-					sty_obj = dxf_find_obj_descr2(source->t_style, "style", sty_name->value.s_data);
+					sty_obj = dxf_find_obj_descr2(source->t_style, "STYLE", //sty_name->value.s_data);
+            (char*)strpool_cstr( &name_pool, sty_name->value.str));
 					dxf_cpy_style (dest, sty_obj);
 				}
 				/* search also in sub elements */
@@ -820,42 +844,49 @@ int dxf_cpy_sty_drwg(dxf_drawing *source, dxf_drawing *dest){
 
 int dxf_block_cpy(dxf_drawing *source, dxf_drawing *dest, dxf_node *block, dxf_node **block_rec, dxf_node **new_block){
 	int ok = 0;
-	char name[DXF_MAX_CHARS], layer[DXF_MAX_CHARS];
+	//char name[DXF_MAX_CHARS], layer[DXF_MAX_CHARS];
+  STRPOOL_U64 name = 0, layer = 0;
 	if (!dest || !source || !block) return 0;
 	dxf_node *blkrec = NULL, *blk = NULL, *endblk = NULL, *handle = NULL;
 	dxf_node *obj, *new_ent, *current;
 	
-	name[0] = 0;
-	layer[0] = 0;
+	//name[0] = 0;
+	//layer[0] = 0;
 	
 	/* get block name */
 	obj = dxf_find_attr2(block, 2);
 	if(!obj) return 0;
-	strncpy (name, obj->value.s_data, DXF_MAX_CHARS);
+	//strncpy (name, obj->value.s_data, DXF_MAX_CHARS);
+  name = obj->value.str;
 	
 	/* get block layer */
 	obj = dxf_find_attr2(block, 8);
-	if(obj) strncpy (layer, obj->value.s_data, DXF_MAX_CHARS);
-	
+	if(obj) //strncpy (layer, obj->value.s_data, DXF_MAX_CHARS);
+    layer = obj->value.str;
 	/* verify if block not exist */
-	if (dxf_find_obj_descr2(dest->blks, "BLOCK", name)) return 1;
+	if (dxf_find_obj_descr2(dest->blks, "BLOCK", //name)) return 1;
+    (char*)strpool_cstr( &name_pool, name))) return 1;
 	
 	double max_x = 0.0, max_y = 0.0;
 	double min_x = 0.0, min_y = 0.0;
 	int init_ext = 0;
 	
 	/* create BLOCK_RECORD table entry*/
-	blkrec = dxf_new_blkrec (name, dest->pool);
+	blkrec = dxf_new_blkrec ((char*)strpool_cstr( &name_pool, name), dest->pool);
 	ok = ent_handle(dest, blkrec);
 	if (ok) handle = dxf_find_attr2(blkrec, 5); ok = 0;
 	
 	/* begin block */
-	if (handle) blk = dxf_new_begblk (name, layer, (char *)handle->value.s_data, dest->pool);
+	if (handle) blk = dxf_new_begblk (//name, layer, (char *)handle->value.s_data, dest->pool);
+    (char*)strpool_cstr( &name_pool, name),
+    (char*)strpool_cstr( &name_pool, layer),
+    (char*)strpool_cstr( &value_pool, handle->value.str), dest->pool);
 	/* get a handle */
 	ok = ent_handle(dest, blk);
 	/* use the handle to owning the ENDBLK ent */
 	if (ok) handle = dxf_find_attr2(blk, 5); ok = 0;
-	if (handle) endblk = dxf_new_endblk (layer, (char *)handle->value.s_data, dest->pool);
+	if (handle) endblk = dxf_new_endblk ((char*)strpool_cstr( &name_pool, layer), //(char *)handle->value.s_data, dest->pool);
+    (char*)strpool_cstr( &value_pool, handle->value.str), dest->pool);
 	
 	current = block->obj.content;
 	
@@ -904,9 +935,11 @@ int dxf_cpy_appid_drwg(dxf_drawing *source, dxf_drawing *dest){
 			if (current->type == DXF_ENT){
 				appid_name = dxf_find_attr2(current, 1001); /* get element's appid */
 				if (appid_name){
-					appid_obj = dxf_find_obj_descr2(source->t_appid, "APPID", appid_name->value.s_data);
+					appid_obj = dxf_find_obj_descr2(source->t_appid, "APPID", //appid_name->value.s_data);
+            (char*)strpool_cstr( &value_pool, appid_name->value.str));
 					/* verify if APPID not exist */
-					if (!dxf_find_obj_descr2(dest->t_appid, "APPID", appid_name->value.s_data)){
+					if (!dxf_find_obj_descr2(dest->t_appid, "APPID", //appid_name->value.s_data)){
+            (char*)strpool_cstr( &value_pool, appid_name->value.str))){
 						appid = dxf_ent_copy(appid_obj, dest->pool);					
 						ok = ent_handle(dest, appid);
 						if (ok) ok = dxf_obj_append(dest->t_appid, appid);

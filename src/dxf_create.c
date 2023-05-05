@@ -666,7 +666,8 @@ dxf_node * dxf_attdef_cpy (dxf_node *text, char *tag, char *value, double x0, do
 		if (text->type != DXF_ENT){
 			return NULL; /*Fail - wrong type */
 		}
-		if (strcmp(text->obj.name, "TEXT") != 0){
+		//if (strcmp(text->obj.name, "TEXT") != 0){
+    if (dxf_ident_ent_type(text) != DXF_TEXT){
 			return NULL; /*Fail - wrong text */
 		}
 		
@@ -674,16 +675,17 @@ dxf_node * dxf_attdef_cpy (dxf_node *text, char *tag, char *value, double x0, do
 		double x2= 0.0, y2 = 0.0, z2 = 0.0;
 		double h = 1.0, rot = 0.0, t_scale_x = 1.0;
 		double extru_x = 0.0, extru_y = 0.0, extru_z = 1.0;
-		char layer[DXF_MAX_CHARS], l_type[DXF_MAX_CHARS];
-		char t_style[DXF_MAX_CHARS];
+		//char layer[DXF_MAX_CHARS], l_type[DXF_MAX_CHARS];
+		//char t_style[DXF_MAX_CHARS];
+    STRPOOL_U64 layer = 0, l_type = 0, t_style = 0;
 		int color = 0, paper = 0, lw = -2;
 		int t_alin_v = 0, t_alin_h = 0;
 		
 		
 		/* clear the strings */
-		layer[0] = 0;
-		l_type[0] = 0;
-		t_style[0] = 0;
+		//layer[0] = 0;
+		//l_type[0] = 0;
+		//t_style[0] = 0;
 		
 		dxf_node *current = NULL;
 		if (text->obj.content){
@@ -693,13 +695,16 @@ dxf_node * dxf_attdef_cpy (dxf_node *text, char *tag, char *value, double x0, do
 			if (current->type == DXF_ATTR){ /* scan parameters */
 				switch (current->value.group){
 					case 7:
-						strcpy(t_style, current->value.s_data);
+						//strcpy(t_style, current->value.s_data);
+            t_style = current->value.str;
 						break;
 					case 6:
-						strcpy(l_type, current->value.s_data);
+						//strcpy(l_type, current->value.s_data);
+            l_type = current->value.str;
 						break;
 					case 8:
-						strcpy(layer, current->value.s_data);
+						//strcpy(layer, current->value.s_data);
+            layer = current->value.str;
 						break;
 					case 10:
 						x1 = current->value.d_data;
@@ -757,13 +762,16 @@ dxf_node * dxf_attdef_cpy (dxf_node *text, char *tag, char *value, double x0, do
 		}
 		
 		dxf_node * attdef = dxf_new_attdef (x1 - x0, y1 - y0, z1 - z0, h,
-			value, tag, color, layer, l_type, lw, paper, pool);
+			value, tag, color, //layer, l_type, lw, paper, pool);
+      (char*)strpool_cstr( &name_pool, layer),
+      (char*)strpool_cstr( &name_pool, l_type),
+      lw, paper, pool);
 		
 		dxf_attr_change(attdef, 11, (void *)(double[]){x2 - x0});
 		dxf_attr_change(attdef, 21, (void *)(double[]){y2 - y0});
 		dxf_attr_change(attdef, 31, (void *)(double[]){z2 - z0});
 		dxf_attr_change(attdef, 50, (void *)&rot);
-		dxf_attr_change(attdef, 7, (void *)t_style);
+		dxf_attr_change(attdef, 7, (void *) strpool_cstr( &name_pool, t_style));
 		dxf_attr_change(attdef, 41, (void *)&t_scale_x);
 		dxf_attr_change(attdef, 72, (void *)&t_alin_h);
 		dxf_attr_change(attdef, 74, (void *)&t_alin_v);
@@ -786,7 +794,8 @@ double scale, double rotation, int pool){
 		if (attdef->type != DXF_ENT){
 			return NULL; /*Fail - wrong type */
 		}
-		if (strcmp(attdef->obj.name, "ATTDEF") != 0){
+		//if (strcmp(attdef->obj.name, "ATTDEF") != 0){
+    if (dxf_ident_ent_type(attdef) != DXF_ATTDEF){
 			return NULL; /*Fail - wrong attdef */
 		}
 		
@@ -794,9 +803,10 @@ double scale, double rotation, int pool){
 		double x2= 0.0, y2 = 0.0, z2 = 0.0;
 		double h = 1.0, rot = 0.0, t_scale_x = 1.0;
 		double extru_x = 0.0, extru_y = 0.0, extru_z = 1.0;
-		char txt[DXF_MAX_CHARS], tag[DXF_MAX_CHARS];
-		char layer[DXF_MAX_CHARS], l_type[DXF_MAX_CHARS];
-		char t_style[DXF_MAX_CHARS];
+		//char txt[DXF_MAX_CHARS], tag[DXF_MAX_CHARS];
+		//char layer[DXF_MAX_CHARS], l_type[DXF_MAX_CHARS];
+		//char t_style[DXF_MAX_CHARS];
+    STRPOOL_U64 txt = 0, tag = 0, layer = 0, l_type = 0, t_style = 0;
 		int color = 0, paper = 0, lw = -2, flags = 0;
 		int t_alin_v = 0, t_alin_h = 0;
 		
@@ -806,11 +816,11 @@ double scale, double rotation, int pool){
 		cosine = cos(rotation * M_PI/180.0);
 		
 		/* clear the strings */
-		txt[0] = 0;
-		tag[0] = 0;
-		layer[0] = 0;
-		l_type[0] = 0;
-		t_style[0] = 0;
+		//txt[0] = 0;
+		//tag[0] = 0;
+		//layer[0] = 0;
+		//l_type[0] = 0;
+		//t_style[0] = 0;
 		
 		dxf_node *current = NULL;
 		if (attdef->obj.content){
@@ -820,19 +830,24 @@ double scale, double rotation, int pool){
 			if (current->type == DXF_ATTR){ /* get source attdef parameters */
 				switch (current->value.group){
 					case 1:
-						strcpy(txt, current->value.s_data);
+						//strcpy(txt, current->value.s_data);
+            txt = current->value.str;
 						break;
 					case 2:
-						strcpy(tag, current->value.s_data);
+						//strcpy(tag, current->value.s_data);
+            tag = current->value.str;
 						break;
 					case 7:
-						strcpy(t_style, current->value.s_data);
+						//strcpy(t_style, current->value.s_data);
+            t_style = current->value.str;
 						break;
 					case 6:
-						strcpy(l_type, current->value.s_data);
+						//strcpy(l_type, current->value.s_data);
+            l_type = current->value.str;
 						break;
 					case 8:
-						strcpy(layer, current->value.s_data);
+						//strcpy(layer, current->value.s_data);
+            layer = current->value.str;
 						break;
 					case 10:
 						x1 = current->value.d_data;
@@ -917,14 +932,19 @@ double scale, double rotation, int pool){
 		
 		/* create new ATTRIB element */
 		dxf_node * attrib = dxf_new_attrib (x1 + x0, y1 + y0, z1 + z0, h,
-			txt, tag, color, layer, l_type, lw, paper, pool);
+			//txt, tag, color, layer, l_type, lw, paper, pool);
+      (char*)strpool_cstr( &value_pool, txt),
+      (char*)strpool_cstr( &name_pool, tag), color,
+      (char*)strpool_cstr( &name_pool, layer),
+      (char*)strpool_cstr( &name_pool, l_type),
+      lw, paper, pool);
 		
 		/* adjust its parameters */
 		dxf_attr_change(attrib, 11, (void *)(double[]){x2 + x0});
 		dxf_attr_change(attrib, 21, (void *)(double[]){y2 + y0});
 		dxf_attr_change(attrib, 31, (void *)(double[]){z2 + z0});
 		dxf_attr_change(attrib, 50, (void *)&rot);
-		dxf_attr_change(attrib, 7, (void *)t_style);
+		dxf_attr_change(attrib, 7, (void *) strpool_cstr( &name_pool, t_style));
 		dxf_attr_change(attrib, 41, (void *)&t_scale_x);
 		dxf_attr_change(attrib, 72, (void *)&t_alin_h);
 		dxf_attr_change(attrib, 74, (void *)&t_alin_v);
@@ -1037,10 +1057,12 @@ int dxf_block_append(dxf_node *blk, dxf_node *obj){
 		if ((blk->type != DXF_ENT) || (obj->type != DXF_ENT)){
 			return 0; /*Fail - wrong types */
 		}
-		if (strcmp(blk->obj.name, "BLOCK") != 0){
+		//if (strcmp(blk->obj.name, "BLOCK") != 0){
+    if (dxf_ident_ent_type(blk) != DXF_BLK){
 			return 0; /*Fail - wrong block */
 		}
-		if (strcmp(obj->obj.name, "BLOCK") == 0){
+		//if (strcmp(obj->obj.name, "BLOCK") == 0){
+    if (dxf_ident_ent_type(obj) == DXF_BLK){
 			return 0; /*Fail - try to nested blocks*/
 		}
 		
@@ -1097,14 +1119,16 @@ int dxf_new_block (dxf_drawing *drawing, char *name, char *descr,
 			if (ok) handle = dxf_find_attr2(blkrec, 5); ok = 0;
 			
 			/* begin block */
-			if (handle) blk = dxf_new_begblk (name, layer, (char *)handle->value.s_data, pool);
+			if (handle) blk = dxf_new_begblk (name, layer, //(char *)handle->value.s_data, pool);
+        (char*) strpool_cstr( &value_pool, handle->value.str), pool);
 			/* change the block description */
 			dxf_attr_change(blk, 4, (void *)descr);
 			/* get a handle */
 			ok = ent_handle(drawing, blk);
 			/* use the handle to owning the ENDBLK ent */
 			if (ok) handle = dxf_find_attr2(blk, 5); ok = 0;
-			if (handle) endblk = dxf_new_endblk (layer, (char *)handle->value.s_data, pool);
+			if (handle) endblk = dxf_new_endblk (layer, //(char *)handle->value.s_data, pool);
+        (char*) strpool_cstr( &value_pool, handle->value.str), pool);
 			
 			/* *********** */
 			double x = 0.0, y = 0.0, z = 0.0;
@@ -1140,17 +1164,20 @@ int dxf_new_block (dxf_drawing *drawing, char *name, char *descr,
 					if (current->data){
 						obj = (dxf_node *)current->data;
 						if (obj->type == DXF_ENT){ /* DXF entity  */
-							if(strcmp(obj->obj.name, "TEXT") == 0 && txt2attr){
+							//if(strcmp(obj->obj.name, "TEXT") == 0 && txt2attr){
+              if (dxf_ident_ent_type(obj) == DXF_TEXT && txt2attr){
 								text = dxf_find_attr2(obj, 1);
 								if (text){
-									if (strncmp (text->value.s_data, mark, mark_len) == 0){
+									if (strncmp (//text->value.s_data, mark, mark_len) == 0){
+                    strpool_cstr( &value_pool, text->value.str), mark, mark_len) == 0){
 										/*skip marked text, to future proccess */
 										current = current->next;
 										continue;
 									}
 								}
 							}
-							if(strcmp(obj->obj.name, "INSERT") == 0){
+							//if(strcmp(obj->obj.name, "INSERT") == 0){
+              if (dxf_ident_ent_type(obj) == DXF_INSERT){
 								/* don't copy ATTRIB in INSERT ents */
 								new_ent = dxf_ent_cpy_simple(obj, pool);
 								dxf_attr_change(new_ent, 66, (int[]){0});
@@ -1169,7 +1196,8 @@ int dxf_new_block (dxf_drawing *drawing, char *name, char *descr,
 					if (current->data){
 						obj = (dxf_node *)current->data;
 						if (obj->type == DXF_ENT){ /* DXF entity  */
-							if(strcmp(obj->obj.name, "TEXT") == 0){
+							//if(strcmp(obj->obj.name, "TEXT") == 0){
+              if (dxf_ident_ent_type(obj) == DXF_TEXT){
 								text = dxf_find_attr2(obj, 1);
 								if (text){
 									if (strncmp (text->value.s_data, mark, mark_len) == 0){

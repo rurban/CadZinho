@@ -269,6 +269,34 @@ dxf_node * dxf_obj_new (char *name, int pool){
 	return new_obj;
 }
 
+dxf_node * dxf_obj_new2 (STRPOOL_U64 name, int pool){
+	/* create a new DXF Object */
+	dxf_node *new_obj = dxf_mem_pool(ADD_DXF, pool);
+	if (!new_obj) return NULL;
+  
+  new_obj->obj.id = name;
+  new_obj->master = NULL;
+  new_obj->prev = NULL;
+  new_obj->next = NULL;
+  new_obj->type = DXF_ENT;
+  new_obj->obj.layer = 0;
+  new_obj->obj.pool = pool;
+  new_obj->obj.graphics = NULL;
+  
+  /* create head of content's list */
+  new_obj->obj.content = (dxf_node *) dxf_mem_pool(ADD_DXF, pool);
+  if(new_obj->obj.content) return NULL;
+  
+  new_obj->end = new_obj->obj.content;
+  new_obj->obj.content->master = new_obj;
+  new_obj->obj.content->prev = NULL;
+  new_obj->obj.content->next = NULL;
+  new_obj->obj.content->type = DXF_ATTR;
+  new_obj->obj.content->value.t_data = DXF_INT;
+  
+	return new_obj;
+}
+
 int dxf_ident_attr_type (int group){
 	/* Identifies the data type of the attribute,  */
 	/* according to the value of the group. (DXF ranges) */
@@ -453,6 +481,7 @@ int dxf_ident_ent_type (dxf_node *obj){
     ents[21] = strpool_inject(&obj_pool, "DIMSTYLE", (int) strlen("DIMSTYLE"));
     ents[22] = strpool_inject(&obj_pool, "IMAGE", (int) strlen("IMAGE"));
     ents[23] = strpool_inject(&obj_pool, "SPLINE", (int) strlen("SPLINE"));
+    ents[24] = strpool_inject(&obj_pool, "ATTDEF", (int) strlen("ATTDEF"));
     
     init = 1;
   }
@@ -531,6 +560,9 @@ int dxf_ident_ent_type (dxf_node *obj){
 			}
 			else if (obj->obj.id == ents[23]){
 				ent_type = DXF_SPLINE;
+			}
+      else if (obj->obj.id == ents[24]){
+				ent_type = DXF_ATTDEF;
 			}
 		}
 	}
@@ -2361,6 +2393,56 @@ int dxf_attr_append(dxf_node *master, int group, void *value, int pool){
 		}
 	}
 	return 0;
+}
+
+int dxf_attr_append_cpy(dxf_node *master, dxf_node *orig, int pool){
+	if (!master || !orig) return 0;
+  if (master->type != DXF_ENT) return 0;
+  if (orig->type != DXF_ATTR) return 0;
+  
+  dxf_node *new_attr = (dxf_node *) dxf_mem_pool(ADD_DXF, pool);
+  if (!new_attr) return 0;
+  
+  new_attr->value.group = orig->value.group;
+  new_attr->value.t_data = orig->value.t_data;
+  
+  if(orig->value.t_data == DXF_FLOAT){
+    new_attr->value.d_data = orig->value.d_data;
+  }
+  else if(orig->value.t_data == DXF_INT){
+    new_attr->value.i_data = orig->value.i_data;
+  }
+  else if(orig->value.t_data == DXF_STR){
+    new_attr->value.str = orig->value.str;
+  }
+  
+  new_attr->master = master;
+  /* start search at end of master's list */
+  dxf_node *next = NULL, *prev = master->end;
+  /*  find the last attribute*/
+  if (prev){ /*skip if is an entity */
+    while (prev->type == DXF_ENT){
+      prev = prev->prev;
+      if (!prev) break;
+    }
+  }	
+  
+  /* append new attr between prev and next nodes */
+  new_attr->prev = prev;
+  if (prev){
+    next = prev->next;
+    prev->next = new_attr;
+  }
+  new_attr->next = next;
+  if (next){
+    next->prev = new_attr;
+  }
+  
+  if (prev == master->end){
+    master->end = new_attr;
+  }
+  
+  return 1;
 }
 
 int dxf_attr_insert_before(dxf_node *attr, int group, void *value, int pool){

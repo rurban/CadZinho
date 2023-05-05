@@ -58,6 +58,7 @@ enum dxf_graph {
 	DXF_IMAGE 		= 0x400000,
 	DXF_IMAGE_DEF 	= 0x800000,
 	DXF_SPLINE 		= 0x1000000,
+  DXF_ATTDEF 		= 0x2000000,
 };
 
 enum dxf_pool_action{
@@ -289,6 +290,8 @@ void dxf_ent_print_f (dxf_node *ent, char *path);
 
 dxf_node * dxf_obj_new (char *name, int pool);
 
+dxf_node * dxf_obj_new2 (STRPOOL_U64 name, int pool);
+
 int dxf_ident_attr_type (int group);
 
 int dxf_ident_ent_type (dxf_node *obj);
@@ -356,6 +359,8 @@ int dxf_obj_append(dxf_node *master, dxf_node *obj);
 int dxf_obj_detach(dxf_node *obj);
 
 int dxf_attr_append(dxf_node *master, int group, void *value, int pool);
+
+int dxf_attr_append_cpy(dxf_node *master, dxf_node *orig, int pool);
 
 int dxf_attr_insert_before(dxf_node *attr, int group, void *value, int pool);
 
