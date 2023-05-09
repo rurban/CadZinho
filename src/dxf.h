@@ -200,9 +200,9 @@ typedef struct Dxf_tstyle dxf_tstyle;
 
 struct Dxf_dimsty{
 	//char name[DXF_MAX_CHARS+1];
-	//char post[DXF_MAX_CHARS+1]; /* custom text (sufix/prefix) for annotation */
-	//char a_type[DXF_MAX_CHARS+1]; /* arrow type */
-  STRPOOL_U64 name, post, a_type;
+	char post[DXF_MAX_CHARS+1]; /* custom text (sufix/prefix) for annotation */
+	char a_type[DXF_MAX_CHARS+1]; /* arrow type */
+  STRPOOL_U64 name;
 	
 	double scale; /* global scale for render */
 	double a_size; /* arrow size */

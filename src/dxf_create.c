@@ -1200,8 +1200,11 @@ int dxf_new_block (dxf_drawing *drawing, char *name, char *descr,
               if (dxf_ident_ent_type(obj) == DXF_TEXT){
 								text = dxf_find_attr2(obj, 1);
 								if (text){
-									if (strncmp (text->value.s_data, mark, mark_len) == 0){
-										strncpy(tag, text->value.s_data + mark_len, DXF_MAX_CHARS);
+                  char * str = (char *) strpool_cstr( &value_pool, text->value.str);
+									//if (strncmp (text->value.s_data, mark, mark_len) == 0){
+									//	strncpy(tag, text->value.s_data + mark_len, DXF_MAX_CHARS);
+                  if (strncmp (str, mark, mark_len) == 0){
+										strncpy(tag, str + mark_len, DXF_MAX_CHARS);
 										value[0] = 0;
 										if (dflt_value) {
 											strncpy(value, dflt_value, DXF_MAX_CHARS);
@@ -1351,7 +1354,11 @@ int dxf_new_block_xref (dxf_drawing *drawing, char *name, char *descr,
 	if (ok) handle = dxf_find_attr2(blkrec, 5); ok = 0;
 	
 	/* begin block */
-	if (handle) blk = dxf_new_begblk (name, layer, (char *)handle->value.s_data, pool);
+	//if (handle) blk = dxf_new_begblk (name, layer, (char *)handle->value.s_data, pool);
+  if (handle) {
+    char *str = (char *) strpool_cstr( &value_pool, handle->value.str);
+    blk = dxf_new_begblk (name, layer, str, pool);
+  }
 	/* change the block description */
 	dxf_attr_change(blk, 4, (void *)descr);
 	
@@ -1364,7 +1371,11 @@ int dxf_new_block_xref (dxf_drawing *drawing, char *name, char *descr,
 	ok = ent_handle(drawing, blk);
 	/* use the handle to owning the ENDBLK ent */
 	if (ok) handle = dxf_find_attr2(blk, 5); ok = 0;
-	if (handle) endblk = dxf_new_endblk (layer, (char *)handle->value.s_data, pool);
+	//if (handle) endblk = dxf_new_endblk (layer, (char *)handle->value.s_data, pool);
+  if (handle) {
+    char *str = (char *) strpool_cstr( &value_pool, handle->value.str);
+    endblk = dxf_new_endblk (layer, str, pool);
+  }
 	/* end the block*/
 	if (endblk) ok = ent_handle(drawing, endblk);
 	if (ok) ok = dxf_obj_append(blk, endblk);
@@ -1427,10 +1438,12 @@ int dxf_insert_append(dxf_drawing *drawing, dxf_node *ins, dxf_node *obj, int po
 		if ((ins->type != DXF_ENT) || (obj->type != DXF_ENT)){
 			return 0; /*Fail - wrong types */
 		}
-		if (strcmp(ins->obj.name, "INSERT") != 0){
+		//if (strcmp(ins->obj.name, "INSERT") != 0){
+    if (dxf_ident_ent_type(ins) != DXF_INSERT){
 			return 0; /*Fail - wrong insert */
 		}
-		if (strcmp(obj->obj.name, "ATTRIB") != 0){
+		//if (strcmp(obj->obj.name, "ATTRIB") != 0){
+    if (dxf_ident_ent_type(obj) != DXF_ATTRIB){
 			return 0; /*Fail - only acept ATTRIB ents*/
 		}
 		
@@ -1522,9 +1535,10 @@ int dxf_new_ltype (dxf_drawing *drawing, dxf_ltype *line_type){
 	if ((drawing->t_ltype == NULL) || (drawing->main_struct == NULL)) 
 		return 0; /* error -  not main structure */
 	
-	char name_cpy[DXF_MAX_CHARS], *new_name;
-	strncpy(name_cpy, line_type->name, DXF_MAX_CHARS);
-	new_name = trimwhitespace(name_cpy);
+	//char name_cpy[DXF_MAX_CHARS], *new_name;
+	//strncpy(name_cpy, line_type->name, DXF_MAX_CHARS);
+	//new_name = trimwhitespace(name_cpy);
+  char * new_name = (char *) strpool_cstr( &name_pool, line_type->name);
 	
 	if (strlen(new_name) == 0) return 0; /* error -  no name */
 	
@@ -1541,6 +1555,7 @@ int dxf_new_ltype (dxf_drawing *drawing, dxf_ltype *line_type){
 	/* create a new LTYPE */
 	dxf_node * ltyp = dxf_obj_new ("LTYPE", drawing->pool);
 	dxf_node *sty_handle;
+  char *sty_handle_str = NULL;
 	
 	if (ltyp) {
 		ok = 1;
@@ -1566,7 +1581,9 @@ int dxf_new_ltype (dxf_drawing *drawing, dxf_ltype *line_type){
 					sty_handle = dxf_find_attr2(drawing->text_styles[line_type->dashes[i].sty_i].obj, 5);
 					if (!sty_handle){
 						continue;
-					}
+					} else {
+            sty_handle_str = (char *) strpool_cstr( &value_pool, sty_handle->value.str);
+          }
 				}
 				else {
 					continue;
@@ -1583,7 +1600,8 @@ int dxf_new_ltype (dxf_drawing *drawing, dxf_ltype *line_type){
 				if (line_type->dashes[i].type == LTYP_STRING){
 					ok &= dxf_attr_append(ltyp, 75, (void *) (int[]){0}, drawing->pool);
 				}
-				ok &= dxf_attr_append(ltyp, 340, (void *) sty_handle->value.s_data, drawing->pool);
+				//ok &= dxf_attr_append(ltyp, 340, (void *) sty_handle->value.s_data, drawing->pool);
+        ok &= dxf_attr_append(ltyp, 340, (void *) sty_handle_str, drawing->pool);
 				ok &= dxf_attr_append(ltyp, 46, (void *) &line_type->dashes[i].scale, drawing->pool);
 				ok &= dxf_attr_append(ltyp, 50, (void *) &line_type->dashes[i].rot, drawing->pool);
 				ok &= dxf_attr_append(ltyp, 44, (void *) &line_type->dashes[i].ofs_x, drawing->pool);
@@ -2640,7 +2658,11 @@ int color, char *layer, char *ltype, int lw, int paper, int pool){
 		if (handle) ok = dxf_obj_append(drawing->objs, imgdef);
 		
 		/* link IMAGEDEF to IMAGE entity */
-		if (ok) ok = dxf_attr_append(new_img, 340, (void *) handle->value.s_data, pool);
+		//if (ok) ok = dxf_attr_append(new_img, 340, (void *) handle->value.s_data, pool);
+    if (ok) {
+      ok = dxf_attr_append(new_img, 340, 
+        (void *) strpool_cstr( &value_pool, handle->value.str), pool);
+    }
 	}
 	
 	/* image flags -> show image yet not aligned */
@@ -2970,9 +2992,10 @@ int dxf_new_dim_sty (dxf_drawing *drawing, dxf_dimsty dim_sty){
 	if ((drawing->t_dimst == NULL) || (drawing->main_struct == NULL)) 
 		return 0; /* error -  not main structure */
 	
-	char name_cpy[DXF_MAX_CHARS], *new_name;
-	strncpy(name_cpy, dim_sty.name, DXF_MAX_CHARS);
-	new_name = trimwhitespace(name_cpy);
+	//char name_cpy[DXF_MAX_CHARS], *new_name;
+	//strncpy(name_cpy, dim_sty.name, DXF_MAX_CHARS);
+	//new_name = trimwhitespace(name_cpy);
+  char * new_name = (char *) strpool_cstr( &name_pool, dim_sty.name);
 	
 	if (strlen(new_name) == 0) return 0; /* error -  no name */
 	
@@ -3013,7 +3036,8 @@ int dxf_new_dim_sty (dxf_drawing *drawing, dxf_dimsty dim_sty){
 		
 		dxf_node *sty_handle = dxf_find_attr2(drawing->text_styles[dim_sty.tstyle].obj, 5);
 		if (sty_handle){
-			ok &= dxf_attr_append(dsty, 340, (void *) sty_handle->value.s_data, drawing->pool);
+			ok &= dxf_attr_append(dsty, 340, (void *) //sty_handle->value.s_data, drawing->pool);
+        strpool_cstr( &value_pool, sty_handle->value.str), drawing->pool);
 		}
 		else{
 			ok &= dxf_attr_append(dsty, 340, (void *) std_tsty, drawing->pool);
