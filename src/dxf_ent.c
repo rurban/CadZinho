@@ -243,7 +243,8 @@ double *pt1_x, double *pt1_y, double *pt1_z, double *bulge){
 				}
 			}
 			else if (current->type == DXF_ENT){
-				if (strcmp(current->obj.name, "VERTEX") == 0 ){
+				//if (strcmp(current->obj.name, "VERTEX") == 0 ){
+        if (dxf_ident_ent_type(current) == DXF_VERTEX) {
 					pt1 = 1; /* found vertex */
 				}
 			}
@@ -336,7 +337,8 @@ double *pt1_x, double *pt1_y, double *pt1_z, double *bulge){
 		*next = NULL;
 		if (current->next){
 			if (current->next->type == DXF_ENT){
-				if (strcmp(current->next->obj.name, "VERTEX") == 0 ){
+				//if (strcmp(current->next->obj.name, "VERTEX") == 0 ){
+        if (dxf_ident_ent_type(current->next) == DXF_VERTEX) {
 					*next = current->next;
 				}
 			}
@@ -448,15 +450,19 @@ int dxf_layer_get(dxf_drawing *drawing, dxf_node * ent){
 		return -1;
 	if (!ent) return -1;
 	
+  STRPOOL_U64 dflt = strpool_inject( &name_pool, "0", 1 ); /* default layer is "0" */
+  STRPOOL_U64 layer = dflt;
+  
 	int ok = -1;
-	char layer[DXF_MAX_CHARS + 1] = "0"; /* default layer is "0" */
+	//char layer[DXF_MAX_CHARS + 1] = "0"; /* default layer is "0" */
 	dxf_node *tmp = NULL;
 	/* try to find entity's layer information */
 	if(tmp = dxf_find_attr2(ent, 8))
-		strncpy (layer, tmp->value.s_data, DXF_MAX_CHARS);
+		//strncpy (layer, tmp->value.s_data, DXF_MAX_CHARS);
+    layer = tmp->value.str;
 	/* try to find layer index */
-	if (strlen(layer) > 0) ok = dxf_lay_idx (drawing, layer);
-	else ok = dxf_lay_idx (drawing, "0");
+	if (layer) ok = dxf_lay_idx (drawing, layer);
+	else ok = dxf_lay_idx (drawing, dflt);
 	
 	return ok;
 }
@@ -471,14 +477,19 @@ int dxf_ltype_get(dxf_drawing *drawing, dxf_node * ent){
 	if (!ent) return -1;
 	
 	int ok = -1;
-	char ltyp[DXF_MAX_CHARS + 1] = "ByLayer"; /* default line type is "ByLayer" */
+	//char ltyp[DXF_MAX_CHARS + 1] = "ByLayer"; /* default line type is "ByLayer" */
+  STRPOOL_U64 dflt = strpool_inject( &name_pool, "ByLayer", strlen("ByLayer") ); /* default line is "ByLayer" */
+  STRPOOL_U64 ltyp = dflt;
 	dxf_node *tmp = NULL;
 	/* try to find entity's line type information */
 	if(tmp = dxf_find_attr2(ent, 6))
-		strncpy (ltyp, tmp->value.s_data, DXF_MAX_CHARS);
+		//strncpy (ltyp, tmp->value.s_data, DXF_MAX_CHARS);
+    ltyp = tmp->value.str;
 	/* try to find line type index */
-	if (strlen(ltyp) > 0) ok = dxf_ltype_idx (drawing, ltyp);
-	else ok = dxf_ltype_idx  (drawing, "ByLayer");
+	//if (strlen(ltyp) > 0) ok = dxf_ltype_idx (drawing, ltyp);
+  if (ltyp) ok = dxf_ltype_idx (drawing, ltyp);
+	//else ok = dxf_ltype_idx  (drawing, "ByLayer");
+  else ok = dxf_ltype_idx  (drawing, dflt);
 	
 	return ok;
 }
@@ -493,14 +504,17 @@ int dxf_tstyle_get(dxf_drawing *drawing, dxf_node * ent){
 	if (!ent) return -1;
 	
 	int ok = -1;
-	char tsty[DXF_MAX_CHARS + 1] = "Standard"; /* default style is "Standard" */
+	//char tsty[DXF_MAX_CHARS + 1] = "Standard"; /* default style is "Standard" */
+  STRPOOL_U64 dflt = strpool_inject( &name_pool, "Standard", strlen("Standard") ); /* default style is "Standard" */
+  STRPOOL_U64 tsty = dflt;
 	dxf_node *tmp = NULL;
 	/* try to find entity's style information */
 	if(tmp = dxf_find_attr2(ent, 7))
-		strncpy (tsty, tmp->value.s_data, DXF_MAX_CHARS);
+		//strncpy (tsty, tmp->value.s_data, DXF_MAX_CHARS);
+    tsty = tmp->value.str;
 	/* try to find style index */
-	if (strlen(tsty) > 0) ok = dxf_tstyle_idx (drawing, tsty);
-	else ok = dxf_tstyle_idx (drawing, "Standard");
+	if (tsty) ok = dxf_tstyle_idx (drawing, tsty);
+	else ok = dxf_tstyle_idx (drawing, dflt);//"Standard");
 	
 	return ok;
 }

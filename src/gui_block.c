@@ -120,6 +120,8 @@ int gui_blk_mng (gui_obj *gui){
 		/* extents and zoom parameters */
 		double blk_x0, blk_y0, blk_x1, blk_y1, z, z_x, z_y, o_x, o_y;
 		double blk_z0, blk_z1;
+    
+    char *name = NULL;
 		
 		block_use(gui->drawing); /* update blocks in use*/
 		
@@ -168,18 +170,20 @@ int gui_blk_mng (gui_obj *gui){
 				while (blk){
 					/* get name of current block */
 					blk_nm = dxf_find_attr2(blk, 2);
-					if (blk_nm){
+          name = NULL;
+          if (blk_nm) name = (char*) strpool_cstr( &name_pool, blk_nm->value.str);
+					if (name){
 						/* show block name, according hidden option */
-						if((blk_nm->value.s_data[0] != '*') || (show_hidden_blks)){ /* hidden blocks name starts with '*' */
+						if((name[0] != '*') || (show_hidden_blks)){ /* hidden blocks name starts with '*' */
 							
 							/* verify if curren block is selected */
 							sel_type = &gui->b_icon_unsel;
-							if (strcmp(gui->blk_name, blk_nm->value.s_data) == 0) sel_type = &gui->b_icon_sel;
+							if (strcmp(gui->blk_name, name) == 0) sel_type = &gui->b_icon_sel;
 							/* block name */
-							if (nk_button_label_styled(gui->ctx, sel_type, blk_nm->value.s_data)){
+							if (nk_button_label_styled(gui->ctx, sel_type, name)){
 								/* select current block */
 								blk_idx = i;
-								strncpy(gui->blk_name, blk_nm->value.s_data, DXF_MAX_CHARS);
+								strncpy(gui->blk_name, name, DXF_MAX_CHARS);
 							}
 							
 							/* Attributes definition in block */
@@ -217,8 +221,8 @@ int gui_blk_mng (gui_obj *gui){
 			/* get description of current block */
 			blk_nm = dxf_find_attr2(blk, 4);
 			if (blk_nm){
-				strncpy(descr, blk_nm->value.s_data, DXF_MAX_CHARS);
-				
+				strncpy(descr, //blk_nm->value.s_data, DXF_MAX_CHARS);
+          strpool_cstr( &value_pool, blk_nm->value.str), DXF_MAX_CHARS);
 			}
 			
 			blk_ei = 0;
@@ -632,9 +636,11 @@ int gui_blk_mng (gui_obj *gui){
 					value[num_attr][0] = 0;
 					hidden[num_attr] = 0;
 					if(tmp = dxf_find_attr2(attr, 2))
-						strncpy(tag[num_attr], tmp->value.s_data, DXF_MAX_CHARS);
+						strncpy(tag[num_attr], //tmp->value.s_data, DXF_MAX_CHARS);
+              strpool_cstr( &name_pool, tmp->value.str), DXF_MAX_CHARS);
 					if(tmp = dxf_find_attr2(attr, 1))
-						strncpy(value[num_attr], tmp->value.s_data, DXF_MAX_CHARS);
+						strncpy(value[num_attr], //tmp->value.s_data, DXF_MAX_CHARS);
+              strpool_cstr( &value_pool, tmp->value.str), DXF_MAX_CHARS);
 					if(tmp = dxf_find_attr2(attr, 70))
 						hidden[num_attr] = tmp->value.i_data & 1;
 					
@@ -769,6 +775,11 @@ int block_use(dxf_drawing *drawing){
 	/* count blocks in use in drawing */
 	int ok = 0, i;
 	dxf_node *current, *prev, *obj = NULL, *list[2];
+  
+  STRPOOL_U64 sys_blk[2];
+  
+  sys_blk[0] = strpool_inject( &name_pool, "*MODEL_SPACE", strlen("*MODEL_SPACE") );
+  sys_blk[1] = strpool_inject( &name_pool, "*PAPER_SPACE", strlen("*PAPER_SPACE") );
 	
 	list[0] = NULL; list[1] = NULL;
 	if (drawing){
@@ -782,19 +793,23 @@ int block_use(dxf_drawing *drawing){
 	if (current) current = current->obj.content;
 	while (current){ /* sweep elements in section */
 		if (current->type == DXF_ENT){
-			if (strcmp(current->obj.name, "BLOCK") == 0){
+			//if (strcmp(current->obj.name, "BLOCK") == 0){
+      if (dxf_ident_ent_type(current) == DXF_BLK){
 				/* uses block's layer index to count */
 				current->obj.layer= 0;
 				
 				/* get name of current block */
 				dxf_node * blk_nm = dxf_find_attr2(current, 2);
 				if (blk_nm){
-					char name[DXF_MAX_CHARS + 1];
-					strncpy(name, blk_nm->value.s_data, DXF_MAX_CHARS);
-					str_upp(name);
+					//char name[DXF_MAX_CHARS + 1];
+					//strncpy(name, blk_nm->value.s_data, DXF_MAX_CHARS);
+					//str_upp(name);
 					/* mark used if is a system block*/
-					if (strcmp(name, "*MODEL_SPACE") == 0) current->obj.layer= 1;
-					else if (strcmp(name, "*PAPER_SPACE") == 0) current->obj.layer= 1;
+					//if (strcmp(name, "*MODEL_SPACE") == 0) current->obj.layer= 1;
+					//else if (strcmp(name, "*PAPER_SPACE") == 0) current->obj.layer= 1;
+          for (i = 0; i< 2; i++){
+            if (blk_nm->value.str == sys_blk[i]) current->obj.layer= 1;
+          }
 				}
 			}
 		}
@@ -808,12 +823,15 @@ int block_use(dxf_drawing *drawing){
 			ok = 1;
 			prev = current;
 			if (current->type == DXF_ENT){
-				if ((strcmp(current->obj.name, "INSERT") == 0) ||
-					(strcmp(current->obj.name, "DIMENSION")) == 0){
+				//if ((strcmp(current->obj.name, "INSERT") == 0) ||
+				//	(strcmp(current->obj.name, "DIMENSION")) == 0){
+        if (dxf_ident_ent_type(current) == DXF_INSERT ||
+          dxf_ident_ent_type(current) == DXF_DIMENSION){
 					dxf_node *block = NULL, *blk_name = NULL;
 					blk_name = dxf_find_attr2(current, 2);
 					if(blk_name) {
-						block = dxf_find_obj_descr2(drawing->blks, "BLOCK", blk_name->value.s_data);
+						block = dxf_find_obj_descr2(drawing->blks, "BLOCK", //blk_name->value.s_data);
+              (char*) strpool_cstr( &name_pool, blk_name->value.str));
 						if(block) {
 							/* uses block's layer index to count */
 							block->obj.layer++;

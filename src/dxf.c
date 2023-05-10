@@ -948,6 +948,8 @@ vector_p dxf_find_obj_descr(dxf_node * obj, char *name, char *descr){
 dxf_node * dxf_find_obj_descr2(dxf_node * obj, char *name, char *descr){
 	dxf_node *current, *descr_attr;
   
+  if (!name || !descr) return NULL;
+  
   STRPOOL_U64 id = strpool_inject(&obj_pool, (const char*) name, (int) strlen(name));
   STRPOOL_U64 dscr = strpool_inject(&name_pool, (const char*) descr, (int) strlen(descr));
   

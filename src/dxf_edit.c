@@ -1447,7 +1447,8 @@ dxf_node * dxf_attr2text (dxf_node *attrib, int mode, int pool){
 		if (attrib->type != DXF_ENT){
 			return NULL; /*Fail - wrong type */
 		}
-		if (strcmp(attrib->obj.name, "ATTRIB") != 0){
+		//if (strcmp(attrib->obj.name, "ATTRIB") != 0){
+    if (dxf_ident_ent_type(attrib) != DXF_ATTRIB) {
 			return NULL; /*Fail - wrong entity */
 		}
 		
@@ -1478,19 +1479,24 @@ dxf_node * dxf_attr2text (dxf_node *attrib, int mode, int pool){
 			if (current->type == DXF_ATTR){ /* scan parameters */
 				switch (current->value.group){
 					case 1:
-						strcpy(txt, current->value.s_data);
+						strcpy(txt, //current->value.s_data);
+              strpool_cstr( &value_pool, current->value.str));
 						break;
 					case 2:
-						strcpy(tag+1, current->value.s_data);
+						strcpy(tag+1, //current->value.s_data);
+              strpool_cstr( &name_pool, current->value.str));
 						break;
 					case 7:
-						strcpy(t_style, current->value.s_data);
+						strcpy(t_style, //current->value.s_data);
+              strpool_cstr( &name_pool, current->value.str));
 						break;
 					case 6:
-						strcpy(l_type, current->value.s_data);
+						strcpy(l_type, //current->value.s_data);
+              strpool_cstr( &name_pool, current->value.str));
 						break;
 					case 8:
-						strcpy(layer, current->value.s_data);
+						strcpy(layer, //current->value.s_data);
+              strpool_cstr( &name_pool, current->value.str));
 						break;
 					case 10:
 						x1 = current->value.d_data;
@@ -1580,7 +1586,8 @@ list_node * dxf_edit_expl_ins(dxf_drawing *drawing, dxf_node * ins_ent, int mode
 	if (!ins_ent) return NULL;
 	/* verifiy if entity is valid for this function */
 	if (ins_ent->type != DXF_ENT) return NULL;
-	if (strcmp(ins_ent->obj.name, "INSERT") != 0 ) return NULL;
+	//if (strcmp(ins_ent->obj.name, "INSERT") != 0 ) return NULL;
+  if (dxf_ident_ent_type(ins_ent) != DXF_INSERT) return NULL;
 	
 	list_node *list = NULL;
 	dxf_node *current = NULL;
@@ -1625,14 +1632,17 @@ list_node * dxf_edit_expl_ins(dxf_drawing *drawing, dxf_node * ins_ent, int mode
 	
 	/* find relative block */
 	if(blk_name) {
-		block = dxf_find_obj_descr2(drawing->blks, "BLOCK", blk_name->value.s_data);
+		block = dxf_find_obj_descr2(drawing->blks, "BLOCK", //blk_name->value.s_data);
+      (char*) strpool_cstr( &name_pool, blk_name->value.str));
 		if(block) {
 			list = list_new(NULL, FRAME_LIFE);
 			current = block->obj.content;
 			while (current){ /* sweep elements in block */
 				if (current->type == DXF_ENT){
-					if (strcmp(current->obj.name, "ATTDEF") != 0 &&
-						strcmp(current->obj.name, "ENDBLK") != 0){ /* skip ATTDEF and ENDBLK elements */
+					//if (strcmp(current->obj.name, "ATTDEF") != 0 &&
+					//	strcmp(current->obj.name, "ENDBLK") != 0){ /* skip ATTDEF and ENDBLK elements */
+          if (dxf_ident_ent_type(current) != DXF_ATTDEF &&
+            dxf_ident_ent_type(current) != DXF_ENDBLK){
 						dxf_node *new_ent = dxf_ent_copy(current, FRAME_LIFE);
 						/* apply modifications */
 						dxf_edit_scale(new_ent, scale_x, scale_y, scale_z);
@@ -1657,7 +1667,8 @@ list_node * dxf_edit_expl_ins(dxf_drawing *drawing, dxf_node * ins_ent, int mode
 	current = ins_ent->obj.content;
 	while (current){
 		if (current->type == DXF_ENT){ /* look for DXF entity */
-			if (strcmp(current->obj.name, "ATTRIB") == 0){
+			//if (strcmp(current->obj.name, "ATTRIB") == 0){
+      if (dxf_ident_ent_type(current) == DXF_ATTRIB){
 				/* init return list, if it needed */
 				if (!list) list = list_new(NULL, FRAME_LIFE);
 				if (mode & EXPL_VALUE){ /* convert value to text */
@@ -1689,7 +1700,8 @@ list_node * dxf_edit_expl_dim(dxf_drawing *drawing, dxf_node * dim_ent, int mode
 	if (!dim_ent) return NULL;
 	/* verifiy if entity is valid for this function */
 	if (dim_ent->type != DXF_ENT) return NULL;
-	if (strcmp(dim_ent->obj.name, "DIMENSION") != 0 ) return NULL;
+	//if (strcmp(dim_ent->obj.name, "DIMENSION") != 0 ) return NULL;
+  if (dxf_ident_ent_type(dim_ent) != DXF_DIMENSION) return NULL;
 	
 	list_node *list = NULL;
 	dxf_node *current = NULL;
@@ -1699,14 +1711,17 @@ list_node * dxf_edit_expl_dim(dxf_drawing *drawing, dxf_node * dim_ent, int mode
 	
 	/* find relative block */
 	if(blk_name) {
-		block = dxf_find_obj_descr2(drawing->blks, "BLOCK", blk_name->value.s_data);
+		block = dxf_find_obj_descr2(drawing->blks, "BLOCK", //blk_name->value.s_data);
+      (char*) strpool_cstr( &name_pool, blk_name->value.str));
 		if(block) {
 			list = list_new(NULL, FRAME_LIFE);
 			current = block->obj.content;
 			while (current){ /* sweep elements in block */
 				if (current->type == DXF_ENT){
-					if (strcmp(current->obj.name, "ATTDEF") != 0 &&
-						strcmp(current->obj.name, "ENDBLK") != 0){ /* skip ATTDEF and ENDBLK elements */
+					//if (strcmp(current->obj.name, "ATTDEF") != 0 &&
+					//	strcmp(current->obj.name, "ENDBLK") != 0){ /* skip ATTDEF and ENDBLK elements */
+          if (dxf_ident_ent_type(current) != DXF_ATTDEF &&
+            dxf_ident_ent_type(current) != DXF_ENDBLK){
 						dxf_node *new_ent = dxf_ent_copy(current, FRAME_LIFE);
 						
 						/* append to list*/
@@ -1756,11 +1771,13 @@ list_node * dxf_edit_expl_raw(dxf_drawing *drawing, dxf_node * ent, int mode){
 		if (current->type == DXF_ATTR){
 			switch (current->value.group){
 				case 6:
-					strncpy(ltype, current->value.s_data, DXF_MAX_CHARS);
+					strncpy(ltype, //current->value.s_data, DXF_MAX_CHARS);
+            (char*) strpool_cstr( &name_pool, current->value.str), DXF_MAX_CHARS);
 					str_upp(ltype);
 					break;
 				case 8:
-					strncpy(layer, current->value.s_data, DXF_MAX_CHARS);
+					strncpy(layer, //current->value.s_data, DXF_MAX_CHARS);
+            (char*) strpool_cstr( &name_pool, current->value.str), DXF_MAX_CHARS);
 					str_upp(layer);
 					break;
 				case 62:
@@ -1838,8 +1855,10 @@ list_node * dxf_edit_expl_poly(dxf_drawing *drawing, dxf_node * ent, int mode){
 	
 	/* verifiy if entity is valid for this function */
 	if (ent->type != DXF_ENT) return NULL;
-	if (strcmp(ent->obj.name, "LWPOLYLINE") == 0 ) lw_poly = 1;
-	else if (strcmp(ent->obj.name, "POLYLINE") == 0 ) lw_poly = 0;
+	//if (strcmp(ent->obj.name, "LWPOLYLINE") == 0 ) lw_poly = 1;
+  if (dxf_ident_ent_type(ent) == DXF_LWPOLYLINE) lw_poly = 1;
+	//else if (strcmp(ent->obj.name, "POLYLINE") == 0 ) lw_poly = 0;
+  else if (dxf_ident_ent_type(ent) == DXF_POLYLINE) lw_poly = 0;
 	else return NULL;
 	
 	/* color, line weight and line type is by layer (DXF default) */
@@ -1855,11 +1874,13 @@ list_node * dxf_edit_expl_poly(dxf_drawing *drawing, dxf_node * ent, int mode){
 		if (current->type == DXF_ATTR){
 			switch (current->value.group){
 				case 6:
-					strncpy(ltype, current->value.s_data, DXF_MAX_CHARS);
+					strncpy(ltype, //current->value.s_data, DXF_MAX_CHARS);
+            strpool_cstr( &name_pool, current->value.str), DXF_MAX_CHARS);
 					str_upp(ltype);
 					break;
 				case 8:
-					strncpy(layer, current->value.s_data, DXF_MAX_CHARS);
+					strncpy(layer, //current->value.s_data, DXF_MAX_CHARS);
+            strpool_cstr( &name_pool, current->value.str), DXF_MAX_CHARS);
 					str_upp(layer);
 					break;
 				case 62:
