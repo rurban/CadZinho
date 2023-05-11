@@ -45,16 +45,22 @@ int gui_dim_linear_info (gui_obj *gui){
 		nk_layout_row_dynamic(gui->ctx, 20, 1);
 		
 		dxf_node *dsty, *dsty_nm, *next = NULL;
+    
+    char *name = NULL;
 		/* sweep DIMSTYLE table */
 		dsty = dxf_find_obj_nxt(gui->drawing->t_dimst, &next, "DIMSTYLE");
 		while (dsty){
 			/* get name of current dimstyle */
 			dsty_nm = dxf_find_attr2(dsty, 2);
-			if (dsty_nm){
+      name = NULL;
+      if (dsty_nm) name = (char *) strpool_cstr( &name_pool, dsty_nm->value.str);
+			if (name){
 				/* dimstyle name */
-				if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+				//if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+        if (nk_button_label(gui->ctx, name)){
 					/* select current dimstyle */
-					strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+					//strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+          strncpy(sty_name, name, DXF_MAX_CHARS);
 					
 					nk_combo_close(gui->ctx);
 					break;
@@ -104,14 +110,19 @@ int gui_dim_linear_info (gui_obj *gui){
 	} 
 	else {
 		dxf_dimsty dim_sty;
-		strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+		//strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+    dim_sty.name = strpool_inject( &name_pool, (char const*) sty_name, strlen(sty_name) );
 		/*init drawing style */
 		dxf_dim_get_sty(gui->drawing, &dim_sty);
 		
 		char tmp_str[DXF_MAX_CHARS + 1];
 		/* create a temporary DIMENSION entity */
-		dxf_node *new_dim = dxf_new_dim (gui->color_idx, gui->drawing->layers[gui->layer_idx].name, /* color, layer */
-			gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
+		dxf_node *new_dim = dxf_new_dim (gui->color_idx, //gui->drawing->layers[gui->layer_idx].name, /* color, layer */
+			//gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
+			//0, FRAME_LIFE); /* paper space */
+      (char *) strpool_cstr( &name_pool, gui->drawing->layers[gui->layer_idx].name), /* layer */
+			(char *) strpool_cstr( &name_pool, gui->drawing->ltypes[gui->ltypes_idx].name), /* line type */
+      dxf_lw[gui->lw_idx], /* line weight */
 			0, FRAME_LIFE); /* paper space */
 		
 		/* dimension angle */
@@ -125,7 +136,8 @@ int gui_dim_linear_info (gui_obj *gui){
 		double length = cosine*(gui->step_x[1]  - gui->step_x[0]) + sine*(gui->step_y[1] - gui->step_y[0]);
 		
 		/* update dimension entity parameters */
-		dxf_attr_change(new_dim, 3, dim_sty.name);
+		dxf_attr_change(new_dim, 3, //dim_sty.name);
+      (void *) strpool_cstr( &name_pool, dim_sty.name)); 
 		dxf_attr_change(new_dim, 13, &gui->step_x[0]);
 		dxf_attr_change(new_dim, 23, &gui->step_y[0]);
 		dxf_attr_change(new_dim, 14, &gui->step_x[1]);
@@ -238,16 +250,22 @@ int gui_dim_angular_info (gui_obj *gui){
 		nk_layout_row_dynamic(gui->ctx, 20, 1);
 		
 		dxf_node *dsty, *dsty_nm, *next = NULL;
+    
+    char *name = NULL;
 		/* sweep DIMSTYLE table */
 		dsty = dxf_find_obj_nxt(gui->drawing->t_dimst, &next, "DIMSTYLE");
 		while (dsty){
 			/* get name of current dimstyle */
 			dsty_nm = dxf_find_attr2(dsty, 2);
-			if (dsty_nm){
+      name = NULL;
+      if (dsty_nm) name = (char *) strpool_cstr( &name_pool, dsty_nm->value.str);
+			if (name){
 				/* dimstyle name */
-				if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+				//if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+        if (nk_button_label(gui->ctx, name)){
 					/* select current dimstyle */
-					strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+					//strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+          strncpy(sty_name, name, DXF_MAX_CHARS);
 					
 					nk_combo_close(gui->ctx);
 					break;
@@ -322,17 +340,23 @@ int gui_dim_angular_info (gui_obj *gui){
 	} 
 	else {
 		dxf_dimsty dim_sty;
-		strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+		//strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+    dim_sty.name = strpool_inject( &name_pool, (char const*) sty_name, strlen(sty_name) );
 		/*init drawing style */
 		dxf_dim_get_sty(gui->drawing, &dim_sty);
 		char tmp_str[DXF_MAX_CHARS + 1];
 		
 		/* create a temporary DIMENSION entity */
-		dxf_node *new_dim = dxf_new_dim_angular (gui->color_idx, gui->drawing->layers[gui->layer_idx].name, /* color, layer */
-			gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
+		dxf_node *new_dim = dxf_new_dim_angular (gui->color_idx, //gui->drawing->layers[gui->layer_idx].name, /* color, layer */
+			//gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
+			//0, FRAME_LIFE); /* paper space */
+      (char *) strpool_cstr( &name_pool, gui->drawing->layers[gui->layer_idx].name), /* layer */
+			(char *) strpool_cstr( &name_pool, gui->drawing->ltypes[gui->ltypes_idx].name), /* line type */
+      dxf_lw[gui->lw_idx], /* line weight */
 			0, FRAME_LIFE); /* paper space */
 		
-		dxf_attr_change(new_dim, 3, dim_sty.name);
+		dxf_attr_change(new_dim, 3, //dim_sty.name);
+      (void *) strpool_cstr( &name_pool, dim_sty.name)); 
 		
 		/* dimension angle */
 		double start = atan2((gui->step_y[1] - gui->step_y[0]), (gui->step_x[1] - gui->step_x[0])); /* calculed from points */
@@ -493,16 +517,22 @@ int gui_dim_radial_info (gui_obj *gui){
 		nk_layout_row_dynamic(gui->ctx, 20, 1);
 		
 		dxf_node *dsty, *dsty_nm, *next = NULL;
+    
+    char *name = NULL;
 		/* sweep DIMSTYLE table */
 		dsty = dxf_find_obj_nxt(gui->drawing->t_dimst, &next, "DIMSTYLE");
 		while (dsty){
 			/* get name of current dimstyle */
 			dsty_nm = dxf_find_attr2(dsty, 2);
-			if (dsty_nm){
+      name = NULL;
+      if (dsty_nm) name = (char *) strpool_cstr( &name_pool, dsty_nm->value.str);
+			if (name){
 				/* dimstyle name */
-				if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+				//if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+        if (nk_button_label(gui->ctx, name)){
 					/* select current dimstyle */
-					strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+					//strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+          strncpy(sty_name, name, DXF_MAX_CHARS);
 					
 					nk_combo_close(gui->ctx);
 					break;
@@ -547,15 +577,20 @@ int gui_dim_radial_info (gui_obj *gui){
 	} 
 	else {
 		dxf_dimsty dim_sty;
-		strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+		//strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+    dim_sty.name = strpool_inject( &name_pool, (char const*) sty_name, strlen(sty_name) );
 		/*init drawing style */
 		dxf_dim_get_sty(gui->drawing, &dim_sty);
 		char tmp_str[DXF_MAX_CHARS + 1];
 		
 		/* create a temporary DIMENSION entity */
 		dxf_node *new_dim = dxf_new_dim_radial (diametric, 
-			gui->color_idx, gui->drawing->layers[gui->layer_idx].name, /* color, layer */
-			gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
+			gui->color_idx, //gui->drawing->layers[gui->layer_idx].name, /* color, layer */
+			//gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
+			//0, FRAME_LIFE); /* paper space */
+      (char *) strpool_cstr( &name_pool, gui->drawing->layers[gui->layer_idx].name), /* layer */
+			(char *) strpool_cstr( &name_pool, gui->drawing->ltypes[gui->ltypes_idx].name), /* line type */
+      dxf_lw[gui->lw_idx], /* line weight */
 			0, FRAME_LIFE); /* paper space */
 		
 		/* calcule dimension annotation (text) placement */
@@ -576,7 +611,8 @@ int gui_dim_radial_info (gui_obj *gui){
 		double length = sqrt(pow(gui->step_x[1]  - gui->step_x[0], 2) + pow(gui->step_y[1] - gui->step_y[0], 2));
 		
 		/* update dimension entity parameters */
-		dxf_attr_change(new_dim, 3, dim_sty.name);
+		dxf_attr_change(new_dim, 3, //dim_sty.name);
+      (void *) strpool_cstr( &name_pool, dim_sty.name)); 
 		dxf_attr_change(new_dim, 10, &gui->step_x[0]);
 		dxf_attr_change(new_dim, 20, &gui->step_y[0]);
 		dxf_attr_change(new_dim, 11, &base_x);
@@ -681,19 +717,22 @@ int gui_dim_ordinate_info (gui_obj *gui){
 		nk_layout_row_dynamic(gui->ctx, 20, 1);
 		
 		dxf_node *dsty, *dsty_nm, *next = NULL;
+    
+    char *name = NULL;
 		/* sweep DIMSTYLE table */
 		dsty = dxf_find_obj_nxt(gui->drawing->t_dimst, &next, "DIMSTYLE");
 		while (dsty){
 			/* get name of current dimstyle */
 			dsty_nm = dxf_find_attr2(dsty, 2);
-			if (dsty_nm){
+      name = NULL;
+      if (dsty_nm) name = (char *) strpool_cstr( &name_pool, dsty_nm->value.str);
+			if (name){
 				/* dimstyle name */
-				if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+				//if (nk_button_label(gui->ctx, dsty_nm->value.s_data)){
+        if (nk_button_label(gui->ctx, name)){
 					/* select current dimstyle */
-					strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
-					
-					/* go to first step, if user change the style */
-					gui_first_step(gui);
+					//strncpy(sty_name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+          strncpy(sty_name, name, DXF_MAX_CHARS);
 					
 					nk_combo_close(gui->ctx);
 					break;
@@ -750,7 +789,8 @@ int gui_dim_ordinate_info (gui_obj *gui){
 	} 
 	else {
 		dxf_dimsty dim_sty;
-		strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+		//strncpy(dim_sty.name, sty_name, DXF_MAX_CHARS);
+    dim_sty.name = strpool_inject( &name_pool, (char const*) sty_name, strlen(sty_name) );
 		/*init drawing style */
 		dxf_dim_get_sty(gui->drawing, &dim_sty);
 		
@@ -760,9 +800,13 @@ int gui_dim_ordinate_info (gui_obj *gui){
 		char tmp_str[DXF_MAX_CHARS + 1];
 		
 		/* create a temporary DIMENSION entity */
-		dxf_node *new_dim = dxf_new_dim_ordinate (gui->color_idx, gui->drawing->layers[gui->layer_idx].name, /* color, layer */
-				gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
-				0, FRAME_LIFE); /* paper space */
+		dxf_node *new_dim = dxf_new_dim_ordinate (gui->color_idx, //gui->drawing->layers[gui->layer_idx].name, /* color, layer */
+				//gui->drawing->ltypes[gui->ltypes_idx].name, dxf_lw[gui->lw_idx], /* line type, line weight */
+				//0, FRAME_LIFE); /* paper space */
+      (char *) strpool_cstr( &name_pool, gui->drawing->layers[gui->layer_idx].name), /* layer */
+			(char *) strpool_cstr( &name_pool, gui->drawing->ltypes[gui->ltypes_idx].name), /* line type */
+      dxf_lw[gui->lw_idx], /* line weight */
+			0, FRAME_LIFE); /* paper space */
 		
 		double dir = (((x_dir) ? gui->step_y[1] - gui->step_y[0] : gui->step_x[1] - gui->step_x[0]) > 0.0) ? 1.0 : -1.0;
 		double cosine = (x_dir) ? 1.0 : 0.0;
@@ -776,7 +820,8 @@ int gui_dim_ordinate_info (gui_obj *gui){
 		length = cosine*(gui->step_x[2]  - start) + sine*(gui->step_y[2] - start);
 		
 		/* update dimension entity parameters */
-		dxf_attr_change(new_dim, 3, dim_sty.name);
+		dxf_attr_change(new_dim, 3, //dim_sty.name);
+      (void *) strpool_cstr( &name_pool, dim_sty.name)); 
 		dxf_attr_change(new_dim, 10, &gui->step_x[0]);
 		dxf_attr_change(new_dim, 20, &gui->step_y[0]);
 		dxf_attr_change(new_dim, 13, &gui->step_x[2]);
@@ -911,7 +956,8 @@ int gui_dim_mng (gui_obj *gui){
 						sel_type = &gui->b_icon_unsel;
 						if (dsty_i == i) sel_type = &gui->b_icon_sel;
 						/* dimstyle name */
-						if (nk_button_label_styled(gui->ctx, sel_type, dsty_nm->value.s_data)){
+						if (nk_button_label_styled(gui->ctx, sel_type, //dsty_nm->value.s_data)){
+              (void *) strpool_cstr( &name_pool, dsty_nm->value.str))){ 
 							/* select current dimstyle */
 							dsty_i = i;
 						}
@@ -971,16 +1017,18 @@ int gui_dim_mng (gui_obj *gui){
 				dsty = dxf_find_obj_i(gui->drawing->t_dimst, "DIMSTYLE", dsty_i);
 			if (dsty){
 				dxf_dimsty dim_sty;
-				dim_sty.name[0] = 0;
+				//dim_sty.name[0] = 0;
 				dxf_node *dsty_nm = dxf_find_attr2(dsty, 2);
 				if (dsty_nm){
-					strncpy(dim_sty.name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+					//strncpy(dim_sty.name, dsty_nm->value.s_data, DXF_MAX_CHARS);
+          dim_sty.name = dsty_nm->value.str;
 				}
 				
 				dxf_dim_get_sty(gui->drawing, &dim_sty);
 				
 				nk_layout_row_dynamic(gui->ctx, 20, 1);
-				nk_label_colored(gui->ctx, dim_sty.name, NK_TEXT_CENTERED, nk_rgb(255,255,0));
+				nk_label_colored(gui->ctx, //dim_sty.name, NK_TEXT_CENTERED, nk_rgb(255,255,0));
+          strpool_cstr( &name_pool, dim_sty.name), NK_TEXT_CENTERED, nk_rgb(255,255,0));
 				/* edit global dim scale */
 				nk_layout_row(gui->ctx, NK_DYNAMIC, 20, 2, (float[]){0.6, 0.4});
 				nk_label(gui->ctx, _l("Global Scale"), NK_TEXT_LEFT);
@@ -1047,8 +1095,8 @@ int gui_dim_mng (gui_obj *gui){
 				int num_tstyles = gui->drawing->num_tstyles;
 				dxf_tstyle *t_sty = gui->drawing->text_styles;
 				if (dim_sty.tstyle >= 0)
-					strncpy(sty_name, t_sty[dim_sty.tstyle].name, DXF_MAX_CHARS); /* select current style */
-				
+					strncpy(sty_name, //t_sty[dim_sty.tstyle].name, DXF_MAX_CHARS); /* select current style */
+            strpool_cstr( &name_pool, t_sty[dim_sty.tstyle].name), DXF_MAX_CHARS); /* select current style */
 				/* text style combo selection */
 				int h = num_tstyles * 25 + 5;
 				h = (h < 200)? h : 200;
@@ -1056,7 +1104,8 @@ int gui_dim_mng (gui_obj *gui){
 					nk_layout_row_dynamic(gui->ctx, 20, 1);
 					int j = 0;
 					for (j = 0; j < num_tstyles; j++){
-						if (nk_button_label(gui->ctx, t_sty[j].name)){
+						if (nk_button_label(gui->ctx, //t_sty[j].name)){
+              strpool_cstr( &name_pool, t_sty[j].name))){
 							dim_sty.tstyle = j;
 							
 							/* update in DXF main struct */
@@ -1186,7 +1235,8 @@ int gui_dim_mng (gui_obj *gui){
 				nk_layout_row_dynamic(gui->ctx, 20, 2);
 				if (nk_button_label(gui->ctx, _l("OK"))){
 					dxf_dimsty dim_sty;
-					strncpy(dim_sty.name, new_name, DXF_MAX_CHARS);
+					//strncpy(dim_sty.name, new_name, DXF_MAX_CHARS);
+          dim_sty.name = strpool_inject( &name_pool, (char const*) new_name, strlen(new_name) );
 					if (dxf_dim_get_sty(gui->drawing, &dim_sty) != -1){
 						/* fail to  create, commonly name already exists */
 						snprintf(gui->log_msg, 63, _l("Error: DIMSTYLE already exists"));

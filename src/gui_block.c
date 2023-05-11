@@ -896,32 +896,38 @@ int block_rename(dxf_drawing *drawing, char *curr_name, char *new_name){
 	
 	
 	/* copy string for secure manipulation */
-	char old_cpy[DXF_MAX_CHARS], *curr_name_cpy;
-	char new_cpy[DXF_MAX_CHARS], *new_name_cpy;
-	strncpy(old_cpy, curr_name, DXF_MAX_CHARS);
-	strncpy(new_cpy, new_name, DXF_MAX_CHARS);
+	//char old_cpy[DXF_MAX_CHARS], *curr_name_cpy;
+	//char new_cpy[DXF_MAX_CHARS], *new_name_cpy;
+	//strncpy(old_cpy, curr_name, DXF_MAX_CHARS);
+	//strncpy(new_cpy, new_name, DXF_MAX_CHARS);
 	/* remove trailing spaces */
-	curr_name_cpy = trimwhitespace(old_cpy);
-	new_name_cpy = trimwhitespace(new_cpy);
+	//curr_name_cpy = trimwhitespace(old_cpy);
+	//new_name_cpy = trimwhitespace(new_cpy);
+  STRPOOL_U64 old = strpool_inject( &name_pool, (char const*) curr_name, strlen(curr_name) );
+  STRPOOL_U64 rpl = strpool_inject( &name_pool, (char const*) new_name, strlen(new_name) );
 	
 	
 	/* first, rename main block object */
-	current = dxf_find_obj_descr2(drawing->blks, "BLOCK", curr_name_cpy);
+	//current = dxf_find_obj_descr2(drawing->blks, "BLOCK", curr_name_cpy);
+  current = dxf_find_obj_descr2(drawing->blks, "BLOCK", curr_name);
 	if(current) {
-		dxf_attr_change(current, 2, new_name_cpy);
+		//dxf_attr_change(current, 2, new_name_cpy);
+    dxf_attr_change(current, 2, new_name);
 	}
 	else return 0;
 	
 	/* then, rename block_record object*/
-	current = dxf_find_obj_descr2(drawing->blks_rec, "BLOCK_RECORD", curr_name_cpy);
+	//current = dxf_find_obj_descr2(drawing->blks_rec, "BLOCK_RECORD", curr_name_cpy);
+  current = dxf_find_obj_descr2(drawing->blks_rec, "BLOCK_RECORD", curr_name);
 	if(current) {
-		dxf_attr_change(current, 2, new_name_cpy);
+		//dxf_attr_change(current, 2, new_name_cpy);
+    dxf_attr_change(current, 2, new_name);
 	}	
 	
 	/* change to upper case for  consistent comparison*/
-	char curr_upp[DXF_MAX_CHARS];
-	strncpy(curr_upp, curr_name_cpy, DXF_MAX_CHARS);
-	str_upp(curr_upp);
+	//char curr_upp[DXF_MAX_CHARS];
+	//strncpy(curr_upp, curr_name_cpy, DXF_MAX_CHARS);
+	//str_upp(curr_upp);
 	
 	for (i = 0; i< 2; i++){ /* look in BLOCKS and ENTITIES sections */
 		obj = list[i];
@@ -930,21 +936,25 @@ int block_rename(dxf_drawing *drawing, char *curr_name, char *new_name){
 			ok = 1;
 			prev = current;
 			if (current->type == DXF_ENT){
-				if ((strcmp(current->obj.name, "INSERT") == 0) ||
-					(strcmp(current->obj.name, "DIMENSION")) == 0){
+				//if ((strcmp(current->obj.name, "INSERT") == 0) ||
+				//	(strcmp(current->obj.name, "DIMENSION")) == 0){
+        if (dxf_ident_ent_type(current) == DXF_INSERT ||
+          dxf_ident_ent_type(current) == DXF_DIMENSION){
 					dxf_node *block = NULL, *blk_name = NULL;
 					blk_name = dxf_find_attr2(current, 2);
 					if(blk_name) {
 						/* change to upper case for  consistent comparison*/
-						char name_upp[DXF_MAX_CHARS];
-						strncpy(name_upp, blk_name->value.s_data, DXF_MAX_CHARS);
-						str_upp(name_upp);
+						//char name_upp[DXF_MAX_CHARS];
+						//strncpy(name_upp, blk_name->value.s_data, DXF_MAX_CHARS);
+						//str_upp(name_upp);
 						
 						/* verify if is a looking name*/
-						if (strcmp(name_upp, curr_upp) == 0){
+						//if (strcmp(name_upp, curr_upp) == 0){
+            if (blk_name->value.str == old){
 							/* change to new name */
-							blk_name->value.s_data[0] = 0;
-							strncpy(blk_name->value.s_data, new_name_cpy, DXF_MAX_CHARS);
+							//blk_name->value.s_data[0] = 0;
+							//strncpy(blk_name->value.s_data, new_name_cpy, DXF_MAX_CHARS);
+              blk_name->value.str = rpl;
 						}
 					}
 				}
@@ -996,13 +1006,15 @@ int block_select(gui_obj *gui, char *name){
 	
 	if (!name || !gui) return 0;
 	if (strlen(name) == 0) return 0;
+  
+  STRPOOL_U64 look = strpool_inject( &name_pool, (char const*) name, strlen(name) );
 	
 	/* copy string for secure manipulation */
-	char name_cpy[DXF_MAX_CHARS], *name_upp;
-	strncpy(name_cpy, name, DXF_MAX_CHARS);
+	//char name_cpy[DXF_MAX_CHARS], *name_upp;
+	//strncpy(name_cpy, name, DXF_MAX_CHARS);
 	/* remove trailing spaces and change to upper case for  consistent comparison*/
-	name_upp = trimwhitespace(name_cpy);
-	str_upp(name_upp);
+	//name_upp = trimwhitespace(name_cpy);
+	//str_upp(name_upp);
 	
 	current = gui->drawing->ents->obj.content;
 	while (current){ /* sweep elements in section */
@@ -1012,18 +1024,21 @@ int block_select(gui_obj *gui, char *name){
 			if ((!gui->drawing->layers[current->obj.layer].off) && 
 				(!gui->drawing->layers[current->obj.layer].frozen)){
 				/* look for inserts and dimensions */
-				if ((strcmp(current->obj.name, "INSERT") == 0) ||
-					(strcmp(current->obj.name, "DIMENSION")) == 0){
+				//if ((strcmp(current->obj.name, "INSERT") == 0) ||
+				//	(strcmp(current->obj.name, "DIMENSION")) == 0){
+        if (dxf_ident_ent_type(current) == DXF_INSERT ||
+          dxf_ident_ent_type(current) == DXF_DIMENSION){
 					dxf_node *block = NULL, *blk_name = NULL;
 					blk_name = dxf_find_attr2(current, 2);
 					if(blk_name) {
 						/* change to upper case for  consistent comparison*/
-						char blk_name_upp[DXF_MAX_CHARS];
-						strncpy(blk_name_upp, blk_name->value.s_data, DXF_MAX_CHARS);
-						str_upp(blk_name_upp);
+						//char blk_name_upp[DXF_MAX_CHARS];
+						//strncpy(blk_name_upp, blk_name->value.s_data, DXF_MAX_CHARS);
+						//str_upp(blk_name_upp);
 						
 						/* verify if is a looking name*/
-						if (strcmp(name_upp, blk_name_upp) == 0){
+						//if (strcmp(name_upp, blk_name_upp) == 0){
+            if (blk_name->value.str == look){
 							/* add to selection list */
 							list_modify(gui->sel_list, current, LIST_ADD, SEL_LIFE);
 							
